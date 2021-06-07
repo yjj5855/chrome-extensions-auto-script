@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script crossorigin="anonymous" integrity="sha512-YXLGLsQBiwHPHLCAA9npZWhADUsHECjkZ71D1uzT2Hpop82/eLnmFb6b0jo8pK4T0Au0g2FETrRJNblF/46ZzQ==" src="https://lib.baomitu.com/vue/2.6.12/vue.js"></script>
+  <style type="text/css">
+    body {
+      min-height: 1600px;
+    }
+
+    .scroll-container {
+      max-height: 500px;
+      max-width: 500px;
+      background: pink;
+      overflow: auto;
+    }
+
+    .scroll-content {
+      height: 1080px;
+      width: 1920px;
+    }
+
+    .scroll-inner {
+      width: 300px;
+      height: 300px;
+      background-color: purple;
+    }
+
+    .btn {
+    }
+  </style>
+</head>
+
+<body>
+<button id="start">触发eventList</button>
+<!-用于测试多种类型的点击事件可否派发-->
+<label><input name="Fruit" type="radio" value="" class="aaa" />苹果 </label>
+<label><input name="Fruit" type="radio" value="" class="bbb" />桃子 </label>
+<label><input name="Fruit" type="radio" value="" />香蕉 </label>
+<label><input name="Fruit" type="radio" value="" />梨 </label>
+<label><input name="Fruit" type="radio" value="" />其它 </label>
+<!-用于测试keydown事件-->
+<input class ="inputTest" />
+<button class="btn">
+  nihao
+</button>
+<div class="scroll-container">
+  <div class="scroll-content">
+    <div class="scroll-inner">
+      内部滚动测试
+    </div>
+  </div>
+</div>
+<script src="js/jquery-1.8.3.js"></script>
+<script>
+  // 通用节流方法
+  const throttle = function (cb, delay = 100) {
+    let timer = null;
+    return (ev) => {
+      if (timer) {
+        clearTimeout(timer)
+      }
+      timer = setTimeout(() => {
+        cb && cb(ev);
+      }, delay)
+    };
+  }
+
+  document.getElementById('start').onclick = function () {
+    window.test = true
+    startEventList()
+  }
+  let vm = {eventList: []}
+  async function startEventList () {
+    let focusTarget = null
+    for (let i = 0; i < vm.eventList.length; i++) {
+      let item = vm.eventList[i]
+      let nextItem = vm.eventList[i+1]
+      let ev = null
+      let target = null
+      switch (item.type) {
+        case 'scroll':
+          target = document.elementFromPoint(item.mouseX, item.mouseY)
+          let el = target
+          for (let i =0; i< item.scrollList.length; i++) {
+            if (typeof item.scrollList[i].top !== 'undefined') {
+              $(el).scrollTop(item.scrollList[i].top)
+              $(el).scrollLeft(item.scrollList[i].left)
+            }
+            el = el.parentNode
+          }
+          break;
+      }
+      console.log(`自动化-${i}-${item.type} 后等待${item.time}毫秒`, target)
+      await sleep(item.time)
+    }
+  }
+
+  function sleep (time) {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        resolve()
+      }, time)
+    })
+  }
+
+  let startTime = new Date().getTime()
+
+
+  // TODO:(待验证)测试重现滚动事件
+  let mouseX = 0;
+  let mouseY = 0;
+  let scrollStartEl = null; //用于记录滚动的起始元素，为了保证重现操作时为元素设置scrollTop时不出现偏差
+  let scrollRecordList = [];
+  let scrollElementSet = new Set();
+  setScrollWatcher = function (ev) {
+    mouseX = ev && ev.clientX || mouseX;
+    mouseY = ev && ev.clientY || mouseY;
+    scrollStartEl = document.elementFromPoint(mouseX, mouseY);
+    let el = scrollStartEl;
+    while (el) {
+      if (scrollElementSet.has(el)) {
+        el = null;
+      } else {
+        el.onscroll = throttle(recordScrollInfo);
+        scrollElementSet.add(el);
+        el = el.parentNode;
+      }
+    }
+  };
+  recordScrollInfo = function (ev) {
+    let el = scrollStartEl;
+    // 单纯的滚动也可能引起鼠标对应的dom的变化，滚动结束也需要setScrollWatcher
+    setScrollWatcher();
+    let scrollRecordInfo = {
+      mouseX: mouseX,
+      mouseY: mouseY,
+      scrollList: []
+    }
+    while (el) {
+      scrollRecordInfo.scrollList.push({top: el.scrollTop, left: el.scrollLeft, el: el});
+      el = el.parentNode;
+    }
+    scrollRecordList.push(scrollRecordInfo);
+    let delay = new Date().getTime() - startTime
+    if (delay > 5 && !window.test) {
+      startTime += delay
+      vm.eventList.push({
+        ...scrollRecordInfo,
+        type: 'scroll',
+        time: delay
+      })
+    }
+  }
+  // 绑定鼠标移动事件
+  // document.onmousemove = throttle(setScrollWatcher);
+  document.addEventListener('mousemove', throttle(setScrollWatcher), true)
+</script>
+</body>
+
+</html>

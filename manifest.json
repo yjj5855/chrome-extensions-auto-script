@@ -1,0 +1,24 @@
+{
+  "name": "自动化脚本",
+  "version": "1.0",
+  "manifest_version": 3,
+  "action": {},
+  "permissions": [
+    "scripting",
+    "activeTab",
+    "contextMenus",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [ "http://*/", "https://*/" ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["js/jquery-1.8.3.js", "js/bind-unbind.js"]
+    }
+  ],
+  "devtools_page": "devtools.html"
+}
