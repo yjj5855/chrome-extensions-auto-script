@@ -226,7 +226,7 @@ function startEvent (item, i) {
       }
       break
   }
-  console.log(`自动化-${i}-${item.type} 后等待${item.time}毫秒`, target)
+  console.log(`自动化-${i}-${item.type} 后等待${item.time}毫秒`)
 }
 
 function sleep (time) {

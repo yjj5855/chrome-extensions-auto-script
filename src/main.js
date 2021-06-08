@@ -10,6 +10,8 @@ Vue.config.productionTip = false
 sync(store, router)
 Vue.use(ElementUI, { size: 'small', zIndex: 3000 })
 
+Vue.prototype.$EventBus = new Vue()
+
 /* eslint-disable no-new */
 let app = new Vue({
   el: '#app',

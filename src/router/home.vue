@@ -8,8 +8,10 @@
       <el-col :span="8" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">操作数量</el-col>
       <el-col :span="8" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">操作</el-col>
     </el-row>
-    <el-row class="border-bottom" v-for="(item,index) in caseList">
-      <el-col :span="8" class="table-td padding-8-0">{{item.name}}</el-col>
+    <el-row class="border-bottom" v-for="(item,index) in caseList" :style="{background: runningIndex === index ? '#f0f9eb' : '#fff'}">
+      <el-col :span="8" class="table-td padding-8-0">
+        <edit-div v-model="item.name"></edit-div>
+      </el-col>
       <el-col :span="8" class="table-td padding-8-0">{{item.eventList.length}}</el-col>
       <el-col :span="8" class="table-td padding-8-0">
         <el-button type="text" @click="startLuzhi(index)">开始录制</el-button>
@@ -18,7 +20,43 @@
         <el-button type="text" @click="goDetail(index)">详情</el-button>
       </el-col>
     </el-row>
+    <div style="min-height: 15px;"></div>
+    <div>
+      <el-button round type="primary" @click="batchRun">批量执行</el-button>
+    </div>
+    <div style="min-height: 30px;"></div>
+    <div>
+      <el-row class="border-bottom">
+        <el-col :span="8" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">用例名称</el-col>
+        <el-col :span="16" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">测试结果</el-col>
+      </el-row>
+      <el-row class="border-bottom" v-for="(val, key) in result">
+        <el-col :span="8" class="table-td padding-8-0">
+          {{key}}
+        </el-col>
+        <el-col :span="16" class="table-td padding-8-0">
+          <div v-for="(item, index) in val">
+            <span style="display: inline-block;min-width: 80px;">
+              <el-tag v-if="item.type == 'ajax'" :type="item.method === 'DELETE' ? 'danger' : 'primary'">{{item.method}}</el-tag>
+              <el-tag v-if="item.type == 'newTab'" type="primary">打开新页面</el-tag>
+            </span>
+            <span style="display: inline-block;min-width: 300px;">
+              <el-tag type="info">{{item.url}}</el-tag>
+            </span>
+            <el-tag v-if="item.type == 'ajax'" :type="item.status > 400 ? 'danger' : 'success'">{{item.status}}</el-tag>
+          </div>
+        </el-col>
+      </el-row>
+    </div>
 
+    <el-drawer
+      title="用例详情"
+      :visible.sync="drawerStatus"
+      :wrapperClosable="false"
+      size="50%"
+      direction="ltr">
+      <case-detail ref="caseDetail" :case-index="runningIndex" @runEnd="handleRunCaseEnd"/>
+    </el-drawer>
 
     <el-dialog
       title="正在录制"
@@ -36,14 +74,20 @@
 
 <script>
 import {mapGetters} from 'vuex'
-import endDialog from '../components/end-diaolog'
+import editDiv from '../components/edit-div'
+import caseDetail from './caseDetail'
 export default {
   components: {
-    endDialog
+    caseDetail,
+    'edit-div': editDiv
   },
   data () {
     return {
-      luzhiDialogStatus: false
+      drawerStatus: false,
+      luzhiDialogStatus: false,
+      runningIndex: -1,
+
+      result: {}
     }
   },
   computed: {
@@ -61,8 +105,49 @@ export default {
   mounted () {
   },
   methods: {
+    // tab-activated
+    onTabActivated (activatedTab) {
+      // console.log('onEventBus tab-activated', activatedTab)
+      if (this.runningIndex !== -1 && this.caseList[this.runningIndex].responseConfig) {
+        let configList = this.caseList[this.runningIndex].responseConfig.filter(item => item.type === 'newTab')
+        configList.forEach(config => {
+          if (activatedTab.pendingUrl.endsWith(config.url)) {
+            this.result[this.caseList[this.runningIndex].name].push({
+              type: config.type,
+              url: activatedTab.pendingUrl
+            })
+          }
+        })
+      }
+    },
+    // 测试请求响应
+    onRequestFinished (request) {
+      // 1. 判断当前执行的用例是否配置了response
+      // 2. 匹配结果,输出表格
+      let requestUrl = getUrlPath(request.request.url)
+      if ((request._resourceType === 'xhr' || request._resourceType === 'fetch') &&
+        this.runningIndex !== -1 &&
+        this.caseList[this.runningIndex].responseConfig
+      ) {
+        // console.log('onRequestFinished', requestUrl)
+        let configList = this.caseList[this.runningIndex].responseConfig.filter(item => item.type === 'ajax')
+        configList.forEach(config => {
+          if (requestUrl.endsWith(config.url) && request.request.method === config.method.toUpperCase()){
+            this.result[this.caseList[this.runningIndex].name].push({
+              type: config.type,
+              url: request.request.url,
+              method: request.request.method,
+              status: request.response.status
+            })
+          }
+        })
+      }
+    },
     addCase () {
-      this.caseList.push({name: '用例名称', eventList: []})
+      this.caseList.push({
+        name: '用例名称',
+        eventList: []
+      })
     },
     startLuzhi (index) {
       this.luzhiDialogStatus = true
@@ -91,19 +176,68 @@ export default {
     deleteCase (index) {
       this.$store.commit('deleteCase', index)
     },
-    runCase (index) {
-      // 连接bg
-      this.$store.commit('connect')
-      this.backgroundPageConnection.postMessage({
-        type: 'run-case',
-        tabId: chrome.devtools.inspectedWindow.tabId,
-        case: JSON.parse(JSON.stringify(this.caseList[index]))
-      });
+    async runCase (index) {
+      return new Promise((resolve, reject) => {
+        this.$EventBus.$on('tab-activated', this.onTabActivated)
+        chrome.devtools.network.onRequestFinished.addListener(this.onRequestFinished)
+        this.runningIndex = index
+        // 初始化并清空之前的测试结果
+        if (this.caseList[this.runningIndex].responseConfig) {
+          this.$set(this.result, this.caseList[this.runningIndex].name, [])
+        } else {
+          this.$set(this.result, this.caseList[this.runningIndex].name, undefined)
+        }
+        this.$nextTick(async () => {
+          this.drawerStatus = true
+          this.$nextTick(async () => {
+            if (this.$refs['caseDetail']) {
+              this.$refs['caseDetail'].oneByOneRunCase(() => {
+                resolve()
+              })
+            }
+          })
+        })
+      })
+    },
+    handleRunCaseEnd () {
+      this.$EventBus.$off('tab-activated')
+      chrome.devtools.network.onRequestFinished.removeListener(this.onRequestFinished)
+      this.drawerStatus = false
+      this.$nextTick(() => {
+        this.runningIndex = -1
+      })
+    },
+    async batchRun () {
+      const loading = this.$loading({
+        lock: true,
+        text: '批量运行中...',
+        spinner: 'el-icon-loading',
+        background: 'rgba(0, 0, 0, 0.1)'
+      })
+      for (let i = 0; i < this.caseList.length; i++) {
+        await this.runCase(i)
+        await this.sleep(1000)
+      }
+      loading.close()
+    },
+    sleep (time) {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          resolve()
+        }, time)
+      })
     },
     goDetail (index) {
       this.$router.push({name: 'caseDetail', params: {index}})
     }
   }
+}
+function getUrlPath (url) {
+  let index = url.indexOf('?')
+  if (index >= 0) {
+    url = url.substr(0, index)
+  }
+  return url
 }
 </script>
 

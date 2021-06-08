@@ -8,7 +8,8 @@
     "activeTab",
     "contextMenus",
     "storage",
-    "tabs"
+    "tabs",
+    "alarms"
   ],
   "host_permissions": [ "http://*/", "https://*/" ],
   "background": {

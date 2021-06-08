@@ -1,6 +1,7 @@
 
 // 总连接池
 var connections = {};
+var runningTabId = null
 
 chrome.runtime.onInstalled.addListener((detail) => {
   console.log('bg onInstalled', detail)
@@ -54,12 +55,14 @@ chrome.runtime.onConnect.addListener(function (port) {
         })
         break
       case 'run-case':
+        runningTabId = message.tabId
         chrome.tabs.sendMessage(message.tabId, {
           function: 'runCase',
           case: message.case
         });
         break
       case 'run-one-case':
+        runningTabId = message.tabId
         chrome.tabs.sendMessage(message.tabId, {
           function: 'runOneCase',
           case: message.case,
@@ -84,6 +87,18 @@ chrome.runtime.onConnect.addListener(function (port) {
     }
   });
 });
+
+// 监听测试用例的测试结果是打开新页面的情况
+chrome.tabs.onActivated.addListener(function (activeInfo) {
+  if (runningTabId && connections[runningTabId]) {
+    chrome.tabs.get(activeInfo.tabId, function (tab) {
+      connections[runningTabId].postMessage({
+        type: 'tab-activated',
+        tab: tab
+      })
+    })
+  }
+})
 
 // Receive message from content script and relay to the devTools page for the
 // current tab

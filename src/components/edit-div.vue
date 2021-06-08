@@ -42,13 +42,6 @@
 </script>
 <style>
   .edit-div {
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    word-break: break-all;
-    outline: none;
-    user-select: text;
-    white-space: pre-wrap;
-    text-align: left;
+    display: inline-block;
   }
 </style>

@@ -45,6 +45,10 @@
             case 'add-event':
               this.caseList[this.current].eventList.push(message.event)
               break
+            case 'tab-activated':
+              // 发送eventbus home.vue 执行时监听
+              this.$EventBus.$emit('tab-activated', message.tab)
+              break
           }
         })
         // 发送初始化连接消息
@@ -58,7 +62,7 @@
           console.log('devtool 断开了连接', port)
           self.$store.commit('setDisConnect', true)
         })
-      },
+      }
     }
   }
 </script>
