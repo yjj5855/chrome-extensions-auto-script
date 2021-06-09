@@ -139,13 +139,13 @@ export default {
       for (let i = 0; i < vm.eventList.length; i++) {
         this.currentEventIndex = i
         let item = vm.eventList[i]
-        await this.sleep(item.time)
         this.backgroundPageConnection.postMessage({
           type: 'run-one-case',
           tabId: chrome.devtools.inspectedWindow.tabId,
           case: item,
           index: i
         })
+        await this.sleep(item.time)
       }
       this.currentEventIndex = -1
       this.$emit('runEnd')

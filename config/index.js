@@ -38,11 +38,11 @@ module.exports = {
 
   build: {
     // Template for index.html
-    index: path.resolve(__dirname, '../dist/index.html'),
+    index: path.resolve(__dirname, '../autoScript/devtool/index.html'),
 
     // Paths
-    assetsRoot: path.resolve(__dirname, '../'),
-    assetsSubDirectory: 'dist/static',
+    assetsRoot: path.resolve(__dirname, '../autoScript'),
+    assetsSubDirectory: 'devtool/static',
     assetsPublicPath: '/',
 
     /**

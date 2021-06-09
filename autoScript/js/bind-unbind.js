@@ -100,6 +100,11 @@ function recordScrollInfo (ev) {
     scrollRecordInfo.scrollList.push({top: el.scrollTop, left: el.scrollLeft});
     el = el.parentNode;
   }
+  // scrollList 可能为空 是document.elementFromPoint获取不到,
+  // 这种情况是用户拖动了滚动条, 但是点击的位置没有任何dom导致, 一般是在页面的最底部拖动导致
+  if (scrollRecordInfo.scrollList.length === 0) {
+    scrollRecordInfo.scrollList.push({top: $('html').scrollTop(), left: $('html').scrollLeft()})
+  }
   let delay = new Date().getTime() - window.startTime
   if (delay > 5 && !window.running) {
     window.startTime += delay
@@ -216,6 +221,11 @@ function startEvent (item, i) {
       break
     case 'scroll':
       target = document.elementFromPoint(item.mouseX, item.mouseY)
+      if (!target && item.scrollList.length === 1) {
+        $('html').scrollTop(item.scrollList[0].top)
+        $('html').scrollLeft(item.scrollList[0].left)
+        return
+      }
       let el = target
       for (let i =0; i< item.scrollList.length; i++) {
         if (typeof item.scrollList[i].top !== 'undefined') {
