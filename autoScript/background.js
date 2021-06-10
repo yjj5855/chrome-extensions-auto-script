@@ -32,13 +32,14 @@ chrome.runtime.onConnect.addListener(function (port) {
     console.log('other message', message)
     // other message handling
     switch (message.type) {
-      case 'executeScript':
-        chrome.scripting.executeScript({
-          target: {tabId: message.tabId, allFrames: true},
-          files: [message.scriptToInject]
-        });
-        break
+      // case 'executeScript':
+      //   chrome.scripting.executeScript({
+      //     target: {tabId: message.tabId, allFrames: true},
+      //     files: [message.scriptToInject]
+      //   });
+      //   break
       case 'bind':
+        focusTab(message.tabId)
         chrome.tabs.sendMessage(message.tabId, {function: 'bind'});
         break
       case 'unbind':
@@ -63,10 +64,22 @@ chrome.runtime.onConnect.addListener(function (port) {
         break
       case 'run-one-case':
         runningTabId = message.tabId
+        focusTab(runningTabId)
         chrome.tabs.sendMessage(message.tabId, {
           function: 'runOneCase',
           case: message.case,
           index: message.index
+        });
+        break
+      case 'dom-highlight':
+        chrome.tabs.sendMessage(message.tabId, {
+          function: 'highlight',
+          highlightData: message.highlightData
+        });
+        break
+      case 'dom-unhighlight':
+        chrome.tabs.sendMessage(message.tabId, {
+          function: 'unHighlight'
         });
         break
     }
@@ -122,4 +135,15 @@ function getHost (url) {
   let reg = /^http(s)?:\/\/(.*?)\//
   let host = reg.exec(url)[2]
   return host
+}
+
+/**
+ * 高亮聚焦需要录制的tab
+ * @param tabId
+ */
+function focusTab (tabId) {
+  chrome.tabs.get(tabId, function (tab) {
+    chrome.tabs.highlight({windowId: tab.windowId, tabs: tab.index})
+    chrome.windows.update(tab.windowId, {focused: true})
+  })
 }

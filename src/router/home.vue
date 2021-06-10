@@ -2,61 +2,66 @@
   <div id="app">
     <el-button round type="primary" @click="addCase">添加测试用例</el-button>
     <el-button round type="success" @click="saveData">保存数据</el-button>
-
-    <el-row class="border-bottom">
-      <el-col :span="8" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">用例名称</el-col>
-      <el-col :span="8" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">操作数量</el-col>
-      <el-col :span="8" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">操作</el-col>
-    </el-row>
-    <el-row class="border-bottom" v-for="(item,index) in caseList" :style="{background: runningIndex === index ? '#f0f9eb' : '#fff'}">
-      <el-col :span="8" class="table-td padding-8-0">
-        <edit-div v-model="item.name"></edit-div>
-      </el-col>
-      <el-col :span="8" class="table-td padding-8-0">{{item.eventList.length}}</el-col>
-      <el-col :span="8" class="table-td padding-8-0">
-        <el-button type="text" @click="startLuzhi(index)">开始录制</el-button>
-        <el-button type="text" @click="deleteCase(index)">删除</el-button>
-        <el-button type="text" @click="runCase(index)">执行</el-button>
-        <el-button type="text" @click="goDetail(index)">详情</el-button>
-      </el-col>
-    </el-row>
     <div style="min-height: 15px;"></div>
-    <div>
-      <el-button round type="primary" @click="batchRun">批量执行</el-button>
-    </div>
-    <div style="min-height: 30px;"></div>
-    <div>
-      <el-row class="border-bottom">
-        <el-col :span="8" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">用例名称</el-col>
-        <el-col :span="16" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">测试结果</el-col>
-      </el-row>
-      <el-row class="border-bottom" v-for="(val, key) in result">
-        <el-col :span="8" class="table-td padding-8-0">
-          {{key}}
-        </el-col>
-        <el-col :span="16" class="table-td padding-8-0">
-          <div v-for="(item, index) in val">
-            <span style="display: inline-block;min-width: 80px;">
-              <el-tag v-if="item.type == 'ajax'" :type="item.method === 'DELETE' ? 'danger' : 'primary'">{{item.method}}</el-tag>
-              <el-tag v-if="item.type == 'newTab'" type="primary">打开新页面</el-tag>
-            </span>
-            <span style="display: inline-block;min-width: 300px;">
-              <el-tag type="info">{{item.url}}</el-tag>
-            </span>
-            <el-tag v-if="item.type == 'ajax'" :type="item.status > 400 ? 'danger' : 'success'">{{item.status}}</el-tag>
-          </div>
-        </el-col>
-      </el-row>
-    </div>
-
-    <el-drawer
-      title="用例详情"
-      :visible.sync="drawerStatus"
-      :wrapperClosable="false"
-      size="50%"
-      direction="ltr">
-      <case-detail ref="caseDetail" :case-index="runningIndex" @runEnd="handleRunCaseEnd"/>
-    </el-drawer>
+    <el-row type="flex" class="border-top">
+      <el-col style="width: 30%;">
+        <case-detail v-if="runningIndex >= 0" ref="caseDetail" :case-index="runningIndex" @runEnd="handleRunCaseEnd"/>
+        &nbsp;
+      </el-col>
+      <div class="border-left" style="height: 100vh;"></div>
+      <el-col style="flex: 1;">
+        <el-row class="border-bottom">
+          <el-col :span="8" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">用例名称</el-col>
+          <el-col :span="4" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">操作数量</el-col>
+          <el-col :span="12" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">操作</el-col>
+        </el-row>
+        <el-row
+          class="border-bottom"
+          v-for="(item,index) in caseList"
+          :key="index"
+          :style="{background: runningIndex === index ? '#f0f9eb' : '#fff'}"
+        >
+          <el-col :span="8" class="table-td padding-8-0">
+            <edit-div v-model="item.name"></edit-div>
+          </el-col>
+          <el-col :span="4" class="table-td padding-8-0">{{item.eventList.length}}</el-col>
+          <el-col :span="12" class="table-td padding-8-0">
+            <el-button type="text" @click="startLuzhi(index)">开始录制</el-button>
+            <el-button type="text" @click="deleteCase(index)">删除</el-button>
+            <el-button type="text" @click="runCase(index)">执行</el-button>
+            <el-button type="text" @click="goDetail(index)">详情</el-button>
+          </el-col>
+        </el-row>
+        <div style="min-height: 15px;"></div>
+        <div>
+          <el-button round type="primary" @click="batchRun">批量执行</el-button>
+        </div>
+        <div style="min-height: 30px;"></div>
+        <div>
+          <el-row class="border-bottom">
+            <el-col :span="8" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">用例名称</el-col>
+            <el-col :span="16" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">测试结果</el-col>
+          </el-row>
+          <el-row class="border-bottom" v-for="(val, key) in result" :key="key">
+            <el-col :span="8" class="table-td padding-8-0">
+              {{key}}
+            </el-col>
+            <el-col :span="16" class="table-td padding-8-0">
+              <div v-for="(item, index) in val" :key="index">
+                <span style="display: inline-block;min-width: 80px;">
+                  <el-tag v-if="item.type == 'ajax'" :type="item.method === 'DELETE' ? 'danger' : 'primary'">{{item.method}}</el-tag>
+                  <el-tag v-if="item.type == 'newTab'" type="primary">打开新页面</el-tag>
+                </span>
+                <span style="display: inline-block;min-width: 300px;">
+                  <el-tag type="info">{{item.url}}</el-tag>
+                </span>
+                <el-tag v-if="item.type == 'ajax'" :type="item.status > 400 ? 'danger' : 'success'">{{item.status}}</el-tag>
+              </div>
+            </el-col>
+          </el-row>
+        </div>
+      </el-col>
+    </el-row>
 
     <el-dialog
       title="正在录制"
@@ -83,7 +88,6 @@ export default {
   },
   data () {
     return {
-      drawerStatus: false,
       luzhiDialogStatus: false,
       runningIndex: -1,
 
@@ -185,10 +189,10 @@ export default {
         if (this.caseList[this.runningIndex].responseConfig) {
           this.$set(this.result, this.caseList[this.runningIndex].name, [])
         } else {
-          this.$set(this.result, this.caseList[this.runningIndex].name, undefined)
+          delete this.result[this.caseList[this.runningIndex].name]
+          // this.$set(this.result, , undefined)
         }
         this.$nextTick(async () => {
-          this.drawerStatus = true
           this.$nextTick(async () => {
             if (this.$refs['caseDetail']) {
               this.$refs['caseDetail'].oneByOneRunCase(() => {
@@ -202,7 +206,6 @@ export default {
     handleRunCaseEnd () {
       this.$EventBus.$off('tab-activated')
       chrome.devtools.network.onRequestFinished.removeListener(this.onRequestFinished)
-      this.drawerStatus = false
       this.$nextTick(() => {
         this.runningIndex = -1
       })
@@ -228,7 +231,8 @@ export default {
       })
     },
     goDetail (index) {
-      this.$router.push({name: 'caseDetail', params: {index}})
+      this.runningIndex = index
+      // this.$router.push({name: 'caseDetail', params: {index}})
     }
   }
 }
@@ -260,5 +264,14 @@ function getUrlPath (url) {
   }
   .border-bottom {
     border-bottom: 1px solid #ebeef5;
+  }
+  .border-left {
+    border-left: 1px solid #ebeef5;
+  }
+  .border-right {
+    border-right: 1px solid #ebeef5;
+  }
+  .border-top {
+    border-top: 1px solid #ebeef5;
   }
 </style>

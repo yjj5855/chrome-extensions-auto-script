@@ -5,7 +5,14 @@ const store = new Vuex.Store({
   state: {
     backgroundPageConnection: null,
     current: 0,
-    caseList: [],
+    caseList: [
+      {
+        name: 'asfasf',
+        eventList: [
+          {type: 'click', x: 100, y: 200, tagName: 'SPAN'}
+        ]
+      }
+    ],
     disconnect: true
   },
   actions: {},

@@ -3,12 +3,13 @@
     <template v-if="$route.params.index >= 0">
       <el-button round @click="$router.back()">返回</el-button>
       <el-button round type="primary" @click="startLuzhi">开始录制</el-button>
-      <el-button round type="success" @click="runCase">执行</el-button>
-      <el-button round type="success" @click="oneByOneRunCase">一条条执行</el-button>
+      <el-button round type="success" @click="oneByOneRunCase">自动执行</el-button>
     </template>
 
     <div style="margin: 8px;font-size: 20px;">
       <edit-div v-model="caseDetail.name"></edit-div>
+      <el-button round type="primary" :disabled="currentEventIndex <= 0" @click="postRunMessage(currentEventIndex - 1)">上一步</el-button>
+      <el-button round type="primary" :disabled="currentEventIndex === caseDetail.eventList.length - 1" @click="postRunMessage(currentEventIndex + 1)">下一步</el-button>
     </div>
     <div v-if="$route.params.index >= 0">
       设置测试结果
@@ -38,14 +39,10 @@
     <div
       v-for="(item,index) in caseDetail.eventList"
       :key="index"
-      style="margin-bottom: 10px;"
-      :style="{background: currentEventIndex === index ? '#f0f9eb' : '#fff'}"
+      :style="{background: currentEventIndex === index ? '#ff9b83' : '#fff'}"
+      @click="setFieldData(item)"
     >
-      <span v-for="(val, key) in item">
-        <span>{{key}}:</span>
-        <span v-if="typeof val === 'object'">object</span>
-        <edit-div v-else v-model="item[key]"></edit-div>;&emsp;
-      </span>
+      <event-item :list="caseDetail.eventList" :item="item" :itemIndex="index"/>
       <el-button v-if="$route.params.index >= 0" type="danger" @click="deleteEvent(index)" size="mini">删除</el-button>
     </div>
 
@@ -67,8 +64,10 @@
 import editDiv from '../components/edit-div'
 import BbInputSelect from '../components/input-select'
 import {mapGetters} from 'vuex'
+import EventItem from '../components/event-item'
 export default {
   components: {
+    EventItem,
     'bb-input-select': BbInputSelect,
     'edit-div': editDiv
   },
@@ -120,15 +119,15 @@ export default {
       });
       this.luzhiDialogStatus = false
     },
-    runCase () {
-      // 连接bg
-      this.$store.commit('connect')
-      this.backgroundPageConnection.postMessage({
-        type: 'run-case',
-        tabId: chrome.devtools.inspectedWindow.tabId,
-        case: JSON.parse(JSON.stringify(this.caseDetail))
-      })
-    },
+    // runCase () {
+    //   // 连接bg
+    //   this.$store.commit('connect')
+    //   this.backgroundPageConnection.postMessage({
+    //     type: 'run-case',
+    //     tabId: chrome.devtools.inspectedWindow.tabId,
+    //     case: JSON.parse(JSON.stringify(this.caseDetail))
+    //   })
+    // },
     async oneByOneRunCase (callback) {
       // 连接bg
       this.$store.commit('connect')
@@ -137,18 +136,27 @@ export default {
     },
     async startEventList (vm) {
       for (let i = 0; i < vm.eventList.length; i++) {
-        this.currentEventIndex = i
         let item = vm.eventList[i]
-        this.backgroundPageConnection.postMessage({
-          type: 'run-one-case',
-          tabId: chrome.devtools.inspectedWindow.tabId,
-          case: item,
-          index: i
-        })
+        this.postRunMessage(i)
         await this.sleep(item.time)
       }
       this.currentEventIndex = -1
       this.$emit('runEnd')
+    },
+    postRunMessage (i) {
+      if (!this.caseDetail.eventList[i]) {
+        this.currentEventIndex = -1
+        this.$emit('runEnd')
+        return false
+      }
+      this.currentEventIndex = i
+      this.backgroundPageConnection.postMessage({
+        type: 'run-one-case',
+        tabId: chrome.devtools.inspectedWindow.tabId,
+        case: this.caseDetail.eventList[i],
+        index: i
+      })
+      return true
     },
     sleep (time) {
       return new Promise((resolve, reject) => {
@@ -174,6 +182,9 @@ export default {
     },
     deleteRespConfig (index) {
       this.caseDetail['responseConfig'].splice(index, 1)
+    },
+    setFieldData (eventObj) {
+      // todo 显示右边详细信息 可修改什么的
     }
   }
 }

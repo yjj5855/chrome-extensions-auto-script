@@ -1,15 +1,11 @@
 {
-  "name": "自动化脚本",
+  "name": "auto script",
   "version": "1.0",
   "manifest_version": 3,
   "action": {},
   "permissions": [
-    "scripting",
-    "activeTab",
-    "contextMenus",
     "storage",
-    "tabs",
-    "alarms"
+    "tabs"
   ],
   "host_permissions": [ "http://*/", "https://*/" ],
   "background": {
@@ -18,7 +14,11 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["js/jquery-1.8.3.js", "js/bind-unbind.js"]
+      "js": [
+        "js/jquery-1.8.3.js",
+        "js/bind-unbind.js",
+        "js/highlight.js"
+      ]
     }
   ],
   "devtools_page": "devtools.html"

@@ -2,6 +2,7 @@
   <el-select v-model="valueModel" @change="handleChange" :placeholder="editStatus?placeholder:''" :disabled="!editStatus" :multiple="multiple" :clearable="clearable" :filterable="filterable" :allow-create="allowCreate">
     <el-option
       v-for="item in options"
+      :key="item.code"
       :label="trimLabel ? item.name.trim() : item.name"
       :value="item.code">
       <span>{{item.name}}</span>
