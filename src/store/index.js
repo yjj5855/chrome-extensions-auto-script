@@ -8,6 +8,7 @@ const store = new Vuex.Store({
     caseList: [
       {
         name: '按时发顺丰',
+        urlPath: '/#/',
         eventList: [
           {tagName: 'INPUT', time: 2397, type: 'click', x: 502, y: 155}
         ]

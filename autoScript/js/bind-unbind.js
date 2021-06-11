@@ -185,8 +185,8 @@ let focusTarget = null
 async function startEventList (vm) {
   for (let i = 0; i < vm.eventList.length; i++) {
     let item = vm.eventList[i]
-    startEvent(item, i)
     await sleep(item.time)
+    startEvent(item, i)
   }
 }
 

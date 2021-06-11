@@ -17,7 +17,7 @@ export default new Router({
       path: '/case/:index',
       name: 'caseDetail',
       component: caseDetail,
-      meta: {title: '用例详情'}
+      meta: {title: '脚本详情'}
     },
   ]
 })

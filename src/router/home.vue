@@ -1,60 +1,43 @@
 <template>
   <div id="app">
-    <el-button round type="primary" @click="addCase">添加测试用例</el-button>
-    <el-button round type="success" @click="saveData">保存数据</el-button>
-    <div style="min-height: 15px;"></div>
-    <el-row type="flex" class="border-top">
-      <el-col style="width: 20%;">
-        <case-detail
-          v-if="runningIndex >= 0"
-          ref="caseDetail"
-          :case-index="runningIndex"
-          @runEnd="handleRunCaseEnd"
-          @clickEventItem="handleEventItemClick"
-        />
-        &nbsp;
-      </el-col>
-      <div class="border-left" style="height: 100vh;"></div>
-      <el-col style="width: 30%;">
-        <state-fields
-          v-show="chooseEvent"
-          :fields="chooseEvent"
-          @edit-state="editState"
-        />
-        &nbsp;
-      </el-col>
-      <div class="border-left" style="height: 100vh;"></div>
-      <el-col style="flex: 1;">
+    <el-row type="flex">
+      <el-col style="flex: 1;max-height: 100vh;overflow-y: auto;">
         <el-row class="border-bottom">
-          <el-col :span="8" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">用例名称</el-col>
-          <el-col :span="4" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">操作数量</el-col>
-          <el-col :span="12" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">操作</el-col>
+          <el-col :span="8" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">脚本名称</el-col>
+          <el-col :span="8" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">操作数量</el-col>
+          <el-col :span="8" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">操作</el-col>
         </el-row>
         <el-row
-          class="border-bottom"
+          class="border-bottom script-item"
+          style="cursor: pointer;"
           v-for="(item,index) in caseList"
           :key="index"
-          :style="{background: runningIndex === index ? '#f0f9eb' : '#fff'}"
+          :style="{background: runningIndex === index ? 'hsl(99, 54%, 95%)': 'transparent'}"
+          @click.native="showDetail(index)"
         >
-          <el-col :span="8" class="table-td padding-8-0">
+          <el-col :span="8" class="table-td" style="height: 48px;display: flex;align-items: center;">
             <edit-div v-model="item.name"></edit-div>
           </el-col>
-          <el-col :span="4" class="table-td padding-8-0">{{item.eventList.length}}</el-col>
-          <el-col :span="12" class="table-td padding-8-0">
-            <el-button type="text" @click="startLuzhi(index)">开始录制</el-button>
-            <el-button type="text" @click="deleteCase(index)">删除</el-button>
-            <el-button type="text" @click="runCase(index)">执行</el-button>
-            <el-button type="text" @click="goDetail(index)">详情</el-button>
+          <el-col :span="8" class="table-td" style="height: 48px;display: flex;align-items: center;">{{item.eventList.length}}</el-col>
+          <el-col :span="8" class="table-td script-action">
+            <div class="padding-8-0">
+              <el-button type="text" @click.stop="startLuzhi(index)">开始录制</el-button>
+              <el-button type="text" @click.stop="deleteCase(index)">删除</el-button>
+              <el-button type="text" @click.stop="runCase(index)">执行</el-button>
+              <el-button type="text" @click.stop="goDetail(index)">详情</el-button>
+            </div>
           </el-col>
         </el-row>
         <div style="min-height: 15px;"></div>
-        <div>
+        <div style="padding-left: 8px;">
+          <el-button round type="primary" @click="addCase">添加测试脚本</el-button>
+          <el-button round type="success" @click="saveData">保存数据</el-button>
           <el-button round type="primary" @click="batchRun">批量执行</el-button>
         </div>
         <div style="min-height: 30px;"></div>
         <div>
           <el-row class="border-bottom">
-            <el-col :span="8" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">用例名称</el-col>
+            <el-col :span="8" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">脚本名称</el-col>
             <el-col :span="16" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">测试结果</el-col>
           </el-row>
           <el-row class="border-bottom" v-for="(val, key) in result" :key="key">
@@ -76,6 +59,26 @@
           </el-row>
         </div>
       </el-col>
+      <div class="border-left" style="height: 100vh;"></div>
+      <el-col v-if="runningIndex >= 0" style="width: 25%;max-height: 100vh;overflow-y: auto;">
+        <case-detail
+          ref="caseDetail"
+          :case-index="runningIndex"
+          @runEnd="handleRunCaseEnd"
+          @clickEventItem="handleEventItemClick"
+        />
+        &nbsp;
+      </el-col>
+      <template v-if="runningIndex >= 0 && chooseEvent.type">
+        <div class="border-left" style="height: 100vh;"></div>
+        <el-col style="width: 25%;padding-top: 8px;">
+          <state-fields
+            :fields="chooseEvent"
+            @edit-state="editState"
+          />
+          &nbsp;
+        </el-col>
+      </template>
     </el-row>
 
     <el-dialog
@@ -108,7 +111,6 @@ export default {
     return {
       luzhiDialogStatus: false,
       runningIndex: -1,
-
       result: {},
 
       chooseEvent: {}
@@ -148,9 +150,9 @@ export default {
     },
     // 测试请求响应
     onRequestFinished (request) {
-      // 1. 判断当前执行的用例是否配置了response
+      // 1. 判断当前执行的脚本是否配置了response
       // 2. 匹配结果,输出表格
-      let requestUrl = getUrlPath(request.request.url)
+      let requestUrl = this.$getUrlPath(request.request.url)
       if ((request._resourceType === 'xhr' || request._resourceType === 'fetch') &&
         this.runningIndex !== -1 &&
         this.caseList[this.runningIndex].responseConfig
@@ -170,9 +172,15 @@ export default {
       }
     },
     addCase () {
-      this.caseList.push({
-        name: '用例名称',
-        eventList: []
+
+      chrome.tabs.get(chrome.devtools.inspectedWindow.tabId, (tab) => {
+        let urlPath = this.$getOnlyUrl(tab.url)
+        console.log(urlPath)
+        this.caseList.push({
+          name: '脚本名称',
+          urlPath: urlPath,
+          eventList: []
+        })
       })
     },
     startLuzhi (index) {
@@ -202,10 +210,15 @@ export default {
     deleteCase (index) {
       this.$store.commit('deleteCase', index)
     },
-    async runCase (index) {
+    async runCase (index = null, item) {
       return new Promise((resolve, reject) => {
         this.$EventBus.$on('tab-activated', this.onTabActivated)
         chrome.devtools.network.onRequestFinished.addListener(this.onRequestFinished)
+        if (index === null) {
+          let i = this.caseList.findIndex(caseItem => caseItem === item)
+          index = i
+        }
+        console.log(index)
         this.runningIndex = index
         // 初始化并清空之前的测试结果
         if (this.caseList[this.runningIndex].responseConfig) {
@@ -252,10 +265,11 @@ export default {
         }, time)
       })
     },
-    goDetail (index) {
+    showDetail (index) {
       this.runningIndex = index
-
-      // this.$router.push({name: 'caseDetail', params: {index}})
+    },
+    goDetail (index) {
+      this.$router.push({name: 'caseDetail', params: {index}})
     },
     handleEventItemClick (eventObj) {
       this.$set(this, 'chooseEvent', eventObj)
@@ -266,13 +280,6 @@ export default {
       })
     }
   }
-}
-function getUrlPath (url) {
-  let index = url.indexOf('?')
-  if (index >= 0) {
-    url = url.substr(0, index)
-  }
-  return url
 }
 function set (object, path, value, cb = null) {
   const sections = Array.isArray(path) ? path : path.split('.')
@@ -289,6 +296,13 @@ function set (object, path, value, cb = null) {
 </script>
 
 <style>
+  .script-item:hover .script-action{
+    display: block;
+  }
+  .script-item .script-action{
+    display: none;
+  }
+
   .table-td {
     line-height: 23px;
     padding-right: 10px;

@@ -101,7 +101,7 @@ chrome.runtime.onConnect.addListener(function (port) {
   });
 });
 
-// 监听测试用例的测试结果是打开新页面的情况
+// 监听测试脚本的测试结果是打开新页面的情况
 chrome.tabs.onActivated.addListener(function (activeInfo) {
   if (runningTabId && connections[runningTabId]) {
     chrome.tabs.get(activeInfo.tabId, function (tab) {

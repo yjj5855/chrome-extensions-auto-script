@@ -7,9 +7,11 @@
     </template>
 
     <div style="margin: 8px;font-size: 20px;">
-      <edit-div v-model="caseDetail.name"></edit-div>
-      <el-button round type="primary" :disabled="currentEventIndex <= 0" @click="postRunMessage(currentEventIndex - 1)">上一步</el-button>
-      <el-button round type="primary" :disabled="currentEventIndex === caseDetail.eventList.length - 1" @click="postRunMessage(currentEventIndex + 1)">下一步</el-button>
+      <div>{{caseDetail.name}}</div>
+      <div style="text-align: center;padding: 8px 0;">
+        <el-button round type="primary" :disabled="currentEventIndex <= 0" @click="postRunMessage(currentEventIndex - 1)">上一步</el-button>
+        <el-button round type="primary" :disabled="currentEventIndex === caseDetail.eventList.length" @click="postRunMessage(currentEventIndex + 1)">下一步</el-button>
+      </div>
     </div>
     <div v-if="$route.params.index >= 0">
       设置测试结果
@@ -39,8 +41,8 @@
     <div
       v-for="(item,index) in caseDetail.eventList"
       :key="index"
-      :style="{background: currentEventIndex === index ? '#ff9b83' : '#fff'}"
-      @click="setFieldData(item)"
+      :style="getRowStyle(index)"
+      @click="setFieldData(item,index)"
     >
       <event-item :list="caseDetail.eventList" :item="item" :itemIndex="index"/>
       <el-button v-if="$route.params.index >= 0" type="danger" @click="deleteEvent(index)" size="mini">删除</el-button>
@@ -61,15 +63,13 @@
 </template>
 
 <script>
-import editDiv from '../components/edit-div'
 import BbInputSelect from '../components/input-select'
 import {mapGetters} from 'vuex'
 import EventItem from '../components/event-item'
 export default {
   components: {
     EventItem,
-    'bb-input-select': BbInputSelect,
-    'edit-div': editDiv
+    'bb-input-select': BbInputSelect
   },
   props: {
     caseIndex: {
@@ -80,6 +80,7 @@ export default {
     return {
       luzhiDialogStatus: false,
       currentEventIndex: -1,
+      clickIndex: -1,
 
       typeCodeList: [
         {name: 'ajax请求', code: 'ajax'},
@@ -103,6 +104,19 @@ export default {
 
   },
   methods: {
+    getRowStyle (index) {
+      let style = {
+        background: 'transparent'
+      }
+      if (this.clickIndex === index ) {
+        style.background = '#c158ca'
+        style.color = '#fff'
+      } else if (this.currentEventIndex === index) {
+        style.background = '#67C23A'
+        style.color = '#fff'
+      }
+      return style
+    },
     startLuzhi () {
       this.$store.commit('setCurrent', this.index)
       this.backgroundPageConnection.postMessage({
@@ -137,8 +151,8 @@ export default {
     async startEventList (vm) {
       for (let i = 0; i < vm.eventList.length; i++) {
         let item = vm.eventList[i]
-        this.postRunMessage(i)
         await this.sleep(item.time)
+        this.postRunMessage(i)
       }
       this.currentEventIndex = -1
       this.$emit('runEnd')
@@ -183,7 +197,8 @@ export default {
     deleteRespConfig (index) {
       this.caseDetail['responseConfig'].splice(index, 1)
     },
-    setFieldData (eventObj) {
+    setFieldData (eventObj,index) {
+      this.clickIndex = index
       // 显示右边详细信息 可修改什么的
       this.$emit('clickEventItem', eventObj)
     }

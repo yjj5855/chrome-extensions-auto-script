@@ -27,9 +27,9 @@
       }
     },
     watch: {
-      'value'(){
+      'value' () {
         if (!this.isLocked || !this.innerText) {
-          this.innerText = this.value;
+          this.innerText = this.value
         }
       }
     },
@@ -43,5 +43,6 @@
 <style>
   .edit-div {
     display: inline-block;
+    min-width: 10px;
   }
 </style>

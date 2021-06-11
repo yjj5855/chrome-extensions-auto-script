@@ -146,7 +146,6 @@ export default {
 
     isEditable () {
       // if (this.InspectorInjection && !this.InspectorInjection.editable) return false
-      console.log('isEditable', this.editable, this.fieldOptions)
       return this.editable &&
         !this.fieldOptions.abstract &&
         !this.fieldOptions.readOnly &&
