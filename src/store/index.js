@@ -7,9 +7,9 @@ const store = new Vuex.Store({
     current: 0,
     caseList: [
       {
-        name: 'asfasf',
+        name: '按时发顺丰',
         eventList: [
-          {type: 'click', x: 100, y: 200, tagName: 'SPAN'}
+          {tagName: 'INPUT', time: 2397, type: 'click', x: 502, y: 155}
         ]
       }
     ],

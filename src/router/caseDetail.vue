@@ -184,7 +184,8 @@ export default {
       this.caseDetail['responseConfig'].splice(index, 1)
     },
     setFieldData (eventObj) {
-      // todo 显示右边详细信息 可修改什么的
+      // 显示右边详细信息 可修改什么的
+      this.$emit('clickEventItem', eventObj)
     }
   }
 }

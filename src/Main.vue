@@ -17,11 +17,9 @@
   import {mapGetters} from 'vuex'
   export default {
     created () {
-      console.log('devtool created')
       this.init()
     },
     mounted () {
-      console.log('devtool mounted')
     },
     computed: {
       ...mapGetters(['backgroundPageConnection', 'caseList', 'current', 'disconnect'])

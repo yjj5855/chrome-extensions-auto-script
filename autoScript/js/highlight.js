@@ -155,7 +155,7 @@ function stopUpdateTimer () {
 
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
-    console.log('highlight 收到消息', request)
+    // console.log('highlight 收到消息', request)
     switch (request.function) {
       case "highlight":
         highlight(request.highlightData)

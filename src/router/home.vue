@@ -4,8 +4,23 @@
     <el-button round type="success" @click="saveData">保存数据</el-button>
     <div style="min-height: 15px;"></div>
     <el-row type="flex" class="border-top">
+      <el-col style="width: 20%;">
+        <case-detail
+          v-if="runningIndex >= 0"
+          ref="caseDetail"
+          :case-index="runningIndex"
+          @runEnd="handleRunCaseEnd"
+          @clickEventItem="handleEventItemClick"
+        />
+        &nbsp;
+      </el-col>
+      <div class="border-left" style="height: 100vh;"></div>
       <el-col style="width: 30%;">
-        <case-detail v-if="runningIndex >= 0" ref="caseDetail" :case-index="runningIndex" @runEnd="handleRunCaseEnd"/>
+        <state-fields
+          v-show="chooseEvent"
+          :fields="chooseEvent"
+          @edit-state="editState"
+        />
         &nbsp;
       </el-col>
       <div class="border-left" style="height: 100vh;"></div>
@@ -78,12 +93,15 @@
 </template>
 
 <script>
+import Vue from 'vue'
 import {mapGetters} from 'vuex'
 import editDiv from '../components/edit-div'
 import caseDetail from './caseDetail'
+import stateFields from '../components/state-fields'
 export default {
   components: {
     caseDetail,
+    stateFields,
     'edit-div': editDiv
   },
   data () {
@@ -91,7 +109,9 @@ export default {
       luzhiDialogStatus: false,
       runningIndex: -1,
 
-      result: {}
+      result: {},
+
+      chooseEvent: {}
     }
   },
   computed: {
@@ -103,6 +123,8 @@ export default {
         return {eventList: []}
       }
     }
+  },
+  watch: {
   },
   created () {
   },
@@ -232,7 +254,16 @@ export default {
     },
     goDetail (index) {
       this.runningIndex = index
+
       // this.$router.push({name: 'caseDetail', params: {index}})
+    },
+    handleEventItemClick (eventObj) {
+      this.$set(this, 'chooseEvent', eventObj)
+    },
+    editState (path, payload) {
+      set(this.chooseEvent, path, payload.value, (obj, field, value) => {
+        this.$set(obj, field, value)
+      })
     }
   }
 }
@@ -242,6 +273,18 @@ function getUrlPath (url) {
     url = url.substr(0, index)
   }
   return url
+}
+function set (object, path, value, cb = null) {
+  const sections = Array.isArray(path) ? path : path.split('.')
+  while (sections.length > 1) {
+    object = object[sections.shift()]
+  }
+  const field = sections[0]
+  if (cb) {
+    cb(object, field, value)
+  } else {
+    object[field] = value
+  }
 }
 </script>
 
