@@ -15,17 +15,8 @@ chrome.runtime.onConnect.addListener(function (port) {
     if (message.name == "init") {
       console.log('init', message)
       connections[message.tabId] = port;
-      // 从 storage 中获取当前host的case发送给tab
-      chrome.tabs.get(message.tabId, function (tab) {
-        let host = getHost(tab.url)
-        if (host) {
-          chrome.storage.sync.get([host], function (result) {
-            connections[message.tabId].postMessage({
-              type: 'init-caseList',
-              data: result[host] || []
-            })
-          })
-        }
+      connections[message.tabId].postMessage({
+        type: 'connected'
       })
       return;
     }
@@ -38,6 +29,21 @@ chrome.runtime.onConnect.addListener(function (port) {
       //     files: [message.scriptToInject]
       //   });
       //   break
+      case 'init-caseList':
+        // 从 storage 中获取当前host的case发送给tab
+        chrome.tabs.get(message.tabId, function (tab) {
+          let host = getHost(tab.url)
+          console.log(host)
+          if (host) {
+            chrome.storage.sync.get([host], function (result) {
+              connections[message.tabId].postMessage({
+                type: 'init-caseList',
+                data: result[host] || []
+              })
+            })
+          }
+        })
+        break
       case 'change-window':
         focusTab(message.tabId, message.width, message.height)
         break

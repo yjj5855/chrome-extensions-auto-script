@@ -120,6 +120,13 @@ export default {
       return this.caseList[this.index] ? this.caseList[this.index] : {eventList: []}
     }
   },
+  watch: {
+    index () {
+      this.runningEventIndex = -1
+      this.clickIndex = -1
+      this.$set(this, 'chooseEvent', {})
+    }
+  },
   created () {
 
   },
@@ -165,10 +172,10 @@ export default {
       callback && callback()
     },
     async startEventList (vm) {
+      // change window width height
+      this.postChangeWidthHeightMessage()
       for (let i = 0; i < vm.eventList.length; i++) {
         let item = vm.eventList[i]
-        // change window width height
-        this.postChangeWidthHeightMessage()
         await this.sleep(item.time)
         this.postRunMessage(i)
       }
