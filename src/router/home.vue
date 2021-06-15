@@ -12,7 +12,7 @@
           style="cursor: pointer;"
           v-for="(item,index) in caseList"
           :key="index"
-          :style="{background: runningIndex === index ? 'hsl(99, 54%, 95%)': 'transparent'}"
+          :style="{background: runningCaseIndex === index ? 'hsl(99, 54%, 95%)': 'transparent'}"
           @click.native="showDetail(index)"
         >
           <el-col :span="8" class="table-td" style="height: 48px;display: flex;align-items: center;">
@@ -60,25 +60,14 @@
         </div>
       </el-col>
       <div class="border-left" style="height: 100vh;"></div>
-      <el-col v-if="runningIndex >= 0" style="width: 25%;max-height: 100vh;overflow-y: auto;">
+      <el-col style="flex: 1;">
         <case-detail
+          v-if="runningCaseIndex >= 0"
           ref="caseDetail"
-          :case-index="runningIndex"
+          :case-index="runningCaseIndex"
           @runEnd="handleRunCaseEnd"
-          @clickEventItem="handleEventItemClick"
         />
-        &nbsp;
       </el-col>
-      <template v-if="runningIndex >= 0 && chooseEvent.type">
-        <div class="border-left" style="height: 100vh;"></div>
-        <el-col style="width: 25%;padding-top: 8px;">
-          <state-fields
-            :fields="chooseEvent"
-            @edit-state="editState"
-          />
-          &nbsp;
-        </el-col>
-      </template>
     </el-row>
 
     <el-dialog
@@ -96,21 +85,18 @@
 </template>
 
 <script>
-import Vue from 'vue'
 import {mapGetters} from 'vuex'
 import editDiv from '../components/edit-div'
 import caseDetail from './caseDetail'
-import stateFields from '../components/state-fields'
 export default {
   components: {
     caseDetail,
-    stateFields,
     'edit-div': editDiv
   },
   data () {
     return {
       luzhiDialogStatus: false,
-      runningIndex: -1,
+      runningCaseIndex: -1,
       result: {},
 
       chooseEvent: {}
@@ -136,11 +122,12 @@ export default {
     // tab-activated
     onTabActivated (activatedTab) {
       // console.log('onEventBus tab-activated', activatedTab)
-      if (this.runningIndex !== -1 && this.caseList[this.runningIndex].responseConfig) {
-        let configList = this.caseList[this.runningIndex].responseConfig.filter(item => item.type === 'newTab')
+      if (this.runningCaseIndex !== -1 && this.caseList[this.runningCaseIndex].responseConfig) {
+        let pendingUrl = this.$getUrlPath(activatedTab.pendingUrl)
+        let configList = this.caseList[this.runningCaseIndex].responseConfig.filter(item => item.type === 'newTab')
         configList.forEach(config => {
-          if (activatedTab.pendingUrl.endsWith(config.url)) {
-            this.result[this.caseList[this.runningIndex].name].push({
+          if (pendingUrl.endsWith(config.url)) {
+            this.result[this.caseList[this.runningCaseIndex].name].push({
               type: config.type,
               url: activatedTab.pendingUrl
             })
@@ -154,14 +141,14 @@ export default {
       // 2. 匹配结果,输出表格
       let requestUrl = this.$getUrlPath(request.request.url)
       if ((request._resourceType === 'xhr' || request._resourceType === 'fetch') &&
-        this.runningIndex !== -1 &&
-        this.caseList[this.runningIndex].responseConfig
+        this.runningCaseIndex !== -1 &&
+        this.caseList[this.runningCaseIndex].responseConfig
       ) {
         // console.log('onRequestFinished', requestUrl)
-        let configList = this.caseList[this.runningIndex].responseConfig.filter(item => item.type === 'ajax')
+        let configList = this.caseList[this.runningCaseIndex].responseConfig.filter(item => item.type === 'ajax')
         configList.forEach(config => {
           if (requestUrl.endsWith(config.url) && request.request.method === config.method.toUpperCase()){
-            this.result[this.caseList[this.runningIndex].name].push({
+            this.result[this.caseList[this.runningCaseIndex].name].push({
               type: config.type,
               url: request.request.url,
               method: request.request.method,
@@ -172,7 +159,6 @@ export default {
       }
     },
     addCase () {
-
       chrome.tabs.get(chrome.devtools.inspectedWindow.tabId, (tab) => {
         let urlPath = this.$getOnlyUrl(tab.url)
         console.log(urlPath)
@@ -219,12 +205,12 @@ export default {
           index = i
         }
         console.log(index)
-        this.runningIndex = index
+        this.runningCaseIndex = index
         // 初始化并清空之前的测试结果
-        if (this.caseList[this.runningIndex].responseConfig) {
-          this.$set(this.result, this.caseList[this.runningIndex].name, [])
+        if (this.caseList[this.runningCaseIndex].responseConfig) {
+          this.$set(this.result, this.caseList[this.runningCaseIndex].name, [])
         } else {
-          delete this.result[this.caseList[this.runningIndex].name]
+          delete this.result[this.caseList[this.runningCaseIndex].name]
           // this.$set(this.result, , undefined)
         }
         this.$nextTick(async () => {
@@ -242,7 +228,7 @@ export default {
       this.$EventBus.$off('tab-activated')
       chrome.devtools.network.onRequestFinished.removeListener(this.onRequestFinished)
       this.$nextTick(() => {
-        this.runningIndex = -1
+        this.runningCaseIndex = -1
       })
     },
     async batchRun () {
@@ -266,31 +252,11 @@ export default {
       })
     },
     showDetail (index) {
-      this.runningIndex = index
+      this.runningCaseIndex = index
     },
     goDetail (index) {
       this.$router.push({name: 'caseDetail', params: {index}})
-    },
-    handleEventItemClick (eventObj) {
-      this.$set(this, 'chooseEvent', eventObj)
-    },
-    editState (path, payload) {
-      set(this.chooseEvent, path, payload.value, (obj, field, value) => {
-        this.$set(obj, field, value)
-      })
     }
-  }
-}
-function set (object, path, value, cb = null) {
-  const sections = Array.isArray(path) ? path : path.split('.')
-  while (sections.length > 1) {
-    object = object[sections.shift()]
-  }
-  const field = sections[0]
-  if (cb) {
-    cb(object, field, value)
-  } else {
-    object[field] = value
   }
 }
 </script>

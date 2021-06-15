@@ -6,13 +6,6 @@
       <el-button round type="success" @click="oneByOneRunCase">自动执行</el-button>
     </template>
 
-    <div style="margin: 8px;font-size: 20px;">
-      <div>{{caseDetail.name}}</div>
-      <div style="text-align: center;padding: 8px 0;">
-        <el-button round type="primary" :disabled="currentEventIndex <= 0" @click="postRunMessage(currentEventIndex - 1)">上一步</el-button>
-        <el-button round type="primary" :disabled="currentEventIndex === caseDetail.eventList.length" @click="postRunMessage(currentEventIndex + 1)">下一步</el-button>
-      </div>
-    </div>
     <div v-if="$route.params.index >= 0">
       设置测试结果
       <el-button type="primary" plain @click="addResponse" size="mini">添加结果</el-button>
@@ -38,15 +31,39 @@
         <el-button type="danger" @click="deleteRespConfig(index)" size="mini">删除</el-button>
       </div>
     </div>
-    <div
-      v-for="(item,index) in caseDetail.eventList"
-      :key="index"
-      :style="getRowStyle(index)"
-      @click="setFieldData(item,index)"
-    >
-      <event-item :list="caseDetail.eventList" :item="item" :itemIndex="index"/>
-      <el-button v-if="$route.params.index >= 0" type="danger" @click="deleteEvent(index)" size="mini">删除</el-button>
-    </div>
+    <el-row type="flex">
+      <el-col :span="12" style="padding-top: 8px;">
+        <div style="margin: 8px;font-size: 20px;">
+          <div>{{caseDetail.name}}</div>
+          <div style="text-align: center;padding: 8px 0;">
+            <el-button round type="primary" :disabled="runningEventIndex <= 0" @click="postRunMessage(runningEventIndex - 1)">上一步</el-button>
+            <el-button round type="primary" :disabled="runningEventIndex === caseDetail.eventList.length" @click="postRunMessage(runningEventIndex + 1)">下一步</el-button>
+          </div>
+        </div>
+        <div
+          v-for="(item,index) in caseDetail.eventList"
+          :key="index"
+          :style="getRowStyle(index)"
+          style="position: relative;"
+          @click="setFieldData(item,index)"
+        >
+          <event-item :list="caseDetail.eventList" :item="item" :itemIndex="index"/>
+          <div v-if="$route.params.index >= 0" style="position: absolute;right: 0;top: 0;padding: 5px;">
+            <i class="el-icon-delete-solid" style="color: #F56C6C;" @click="deleteEvent(index)"></i>
+          </div>
+        </div>
+      </el-col>
+      <template v-if="clickIndex >= 0">
+        <div class="border-left" style="height: 100vh;"></div>
+        <el-col style="flex: 1;padding-top: 8px;">
+          <state-fields
+            :fields="chooseEvent"
+            @edit-state="editState"
+          />
+          &nbsp;
+        </el-col>
+      </template>
+    </el-row>
 
     <el-dialog
       title="正在录制"
@@ -59,6 +76,8 @@
         <el-button round type="danger" @click="endLuzhi">结束录制</el-button>
       </span>
     </el-dialog>
+
+
   </div>
 </template>
 
@@ -66,9 +85,12 @@
 import BbInputSelect from '../components/input-select'
 import {mapGetters} from 'vuex'
 import EventItem from '../components/event-item'
+import stateFields from '../components/state-fields'
+import {set} from '../assets/value'
 export default {
   components: {
     EventItem,
+    stateFields,
     'bb-input-select': BbInputSelect
   },
   props: {
@@ -79,8 +101,9 @@ export default {
   data () {
     return {
       luzhiDialogStatus: false,
-      currentEventIndex: -1,
+      runningEventIndex: -1,
       clickIndex: -1,
+      chooseEvent: {},
 
       typeCodeList: [
         {name: 'ajax请求', code: 'ajax'},
@@ -111,7 +134,7 @@ export default {
       if (this.clickIndex === index ) {
         style.background = '#c158ca'
         style.color = '#fff'
-      } else if (this.currentEventIndex === index) {
+      } else if (this.runningEventIndex === index) {
         style.background = '#67C23A'
         style.color = '#fff'
       }
@@ -154,16 +177,16 @@ export default {
         await this.sleep(item.time)
         this.postRunMessage(i)
       }
-      this.currentEventIndex = -1
+      this.runningEventIndex = -1
       this.$emit('runEnd')
     },
     postRunMessage (i) {
       if (!this.caseDetail.eventList[i]) {
-        this.currentEventIndex = -1
+        this.runningEventIndex = -1
         this.$emit('runEnd')
         return false
       }
-      this.currentEventIndex = i
+      this.runningEventIndex = i
       this.backgroundPageConnection.postMessage({
         type: 'run-one-case',
         tabId: chrome.devtools.inspectedWindow.tabId,
@@ -180,6 +203,7 @@ export default {
       })
     },
     deleteEvent (index) {
+      this.clickIndex = -1
       this.caseDetail.eventList.splice(index, 1)
     },
     addResponse () {
@@ -199,8 +223,15 @@ export default {
     },
     setFieldData (eventObj,index) {
       this.clickIndex = index
-      // 显示右边详细信息 可修改什么的
-      this.$emit('clickEventItem', eventObj)
+      this.$set(this, 'chooseEvent', eventObj)
+
+      // // 显示右边详细信息 可修改什么的
+      // this.$emit('clickEventItem', eventObj)
+    },
+    editState (path, payload) {
+      set(this.chooseEvent, path, payload.value, (obj, field, value) => {
+        this.$set(obj, field, value)
+      })
     }
   }
 }

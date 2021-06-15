@@ -104,3 +104,16 @@ export function sortByKey (state) {
     return 0
   })
 }
+
+export function set (object, path, value, cb = null) {
+  const sections = Array.isArray(path) ? path : path.split('.')
+  while (sections.length > 1) {
+    object = object[sections.shift()]
+  }
+  const field = sections[0]
+  if (cb) {
+    cb(object, field, value)
+  } else {
+    object[field] = value
+  }
+}
