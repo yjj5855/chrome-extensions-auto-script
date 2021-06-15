@@ -54,7 +54,6 @@ function sendInputMessage (ev) {
   let delay = new Date().getTime() - window.startTime
   if (delay > 5 && !window.running) {
     window.startTime += delay
-    console.log(ev)
     chrome.runtime.sendMessage({
       type: 'add-event',
       event: {
@@ -170,10 +169,6 @@ chrome.runtime.onMessage.addListener(
         window.running = true
         unbind();
         break
-      case "runCase":
-        window.running = true
-        startEventList(request.case)
-        break
       case "runOneCase":
         window.running = true
         startEvent(request.case, request.index)
@@ -182,13 +177,6 @@ chrome.runtime.onMessage.addListener(
   }
 );
 let focusTarget = null
-async function startEventList (vm) {
-  for (let i = 0; i < vm.eventList.length; i++) {
-    let item = vm.eventList[i]
-    await sleep(item.time)
-    startEvent(item, i)
-  }
-}
 
 function startEvent (item, i) {
   let target = null

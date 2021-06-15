@@ -144,7 +144,9 @@ export default {
       this.$store.commit('setCurrent', this.index)
       this.backgroundPageConnection.postMessage({
         type: 'bind',
-        tabId: chrome.devtools.inspectedWindow.tabId
+        tabId: chrome.devtools.inspectedWindow.tabId,
+        width: this.caseDetail.width,
+        height: this.caseDetail.height
       })
       this.luzhiDialogStatus = true
     },
@@ -156,15 +158,6 @@ export default {
       });
       this.luzhiDialogStatus = false
     },
-    // runCase () {
-    //   // 连接bg
-    //   this.$store.commit('connect')
-    //   this.backgroundPageConnection.postMessage({
-    //     type: 'run-case',
-    //     tabId: chrome.devtools.inspectedWindow.tabId,
-    //     case: JSON.parse(JSON.stringify(this.caseDetail))
-    //   })
-    // },
     async oneByOneRunCase (callback) {
       // 连接bg
       this.$store.commit('connect')
@@ -174,11 +167,21 @@ export default {
     async startEventList (vm) {
       for (let i = 0; i < vm.eventList.length; i++) {
         let item = vm.eventList[i]
+        // change window width height
+        this.postChangeWidthHeightMessage()
         await this.sleep(item.time)
         this.postRunMessage(i)
       }
       this.runningEventIndex = -1
       this.$emit('runEnd')
+    },
+    postChangeWidthHeightMessage () {
+      this.backgroundPageConnection.postMessage({
+        type: 'change-window',
+        tabId: chrome.devtools.inspectedWindow.tabId,
+        width: this.caseDetail.width,
+        height: this.caseDetail.height
+      })
     },
     postRunMessage (i) {
       if (!this.caseDetail.eventList[i]) {

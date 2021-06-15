@@ -4,7 +4,8 @@
       <el-col style="flex: 1;max-height: 100vh;overflow-y: auto;">
         <el-row class="border-bottom">
           <el-col :span="8" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">脚本名称</el-col>
-          <el-col :span="8" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">操作数量</el-col>
+          <el-col :span="4" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">宽/高</el-col>
+          <el-col :span="4" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">操作数量</el-col>
           <el-col :span="8" class="table-td padding-8-0" style="font-weight: bold;color: #909399;">操作</el-col>
         </el-row>
         <el-row
@@ -18,7 +19,12 @@
           <el-col :span="8" class="table-td" style="height: 48px;display: flex;align-items: center;">
             <edit-div v-model="item.name"></edit-div>
           </el-col>
-          <el-col :span="8" class="table-td" style="height: 48px;display: flex;align-items: center;">{{item.eventList.length}}</el-col>
+          <el-col :span="4" class="table-td" style="height: 48px;display: flex;align-items: center;">
+            {{item.width}}px / {{item.height}}px
+          </el-col>
+          <el-col :span="4" class="table-td" style="height: 48px;display: flex;align-items: center;">
+            {{item.eventList.length}}
+          </el-col>
           <el-col :span="8" class="table-td script-action">
             <div class="padding-8-0">
               <el-button type="text" @click.stop="startLuzhi(index)">开始录制</el-button>
@@ -161,11 +167,15 @@ export default {
     addCase () {
       chrome.tabs.get(chrome.devtools.inspectedWindow.tabId, (tab) => {
         let urlPath = this.$getOnlyUrl(tab.url)
-        console.log(urlPath)
-        this.caseList.push({
-          name: '脚本名称',
-          urlPath: urlPath,
-          eventList: []
+        chrome.windows.get(tab.windowId, (window) => {
+          this.caseList.push({
+            name: '脚本名称',
+            urlPath: urlPath,
+            eventList: [],
+            // 获取到tab窗口大小
+            width: window.width,
+            height: window.height
+          })
         })
       })
     },
@@ -175,7 +185,9 @@ export default {
 
       this.backgroundPageConnection.postMessage({
         type: 'bind',
-        tabId: chrome.devtools.inspectedWindow.tabId
+        tabId: chrome.devtools.inspectedWindow.tabId,
+        width: this.currentCaseDetail.width,
+        height: this.currentCaseDetail.height
       })
     },
     endLuzhi () {
@@ -204,7 +216,6 @@ export default {
           let i = this.caseList.findIndex(caseItem => caseItem === item)
           index = i
         }
-        console.log(index)
         this.runningCaseIndex = index
         // 初始化并清空之前的测试结果
         if (this.caseList[this.runningCaseIndex].responseConfig) {
@@ -253,6 +264,11 @@ export default {
     },
     showDetail (index) {
       this.runningCaseIndex = index
+      // this.$nextTick(() => {
+      //   if (this.$refs['caseDetail']) {
+      //     this.$refs['caseDetail'].postChangeWidthHeightMessage()
+      //   }
+      // })
     },
     goDetail (index) {
       this.$router.push({name: 'caseDetail', params: {index}})

@@ -2,9 +2,9 @@
   <div class="edit-div"
        v-html="innerText"
        :contenteditable="canEdit"
-       @focus="isLocked = true"
-       @blur="isLocked = false"
-       @input="changeText">
+       @focus.stop="isLocked = true"
+       @blur.stop="isLocked = false"
+       @input.stop="changeText">
   </div>
 </template>
 <script>

@@ -38,8 +38,11 @@ chrome.runtime.onConnect.addListener(function (port) {
       //     files: [message.scriptToInject]
       //   });
       //   break
+      case 'change-window':
+        focusTab(message.tabId, message.width, message.height)
+        break
       case 'bind':
-        focusTab(message.tabId)
+        focusTab(message.tabId, message.width, message.height)
         chrome.tabs.sendMessage(message.tabId, {function: 'bind'});
         break
       case 'unbind':
@@ -54,13 +57,6 @@ chrome.runtime.onConnect.addListener(function (port) {
             })
           }
         })
-        break
-      case 'run-case':
-        runningTabId = message.tabId
-        chrome.tabs.sendMessage(message.tabId, {
-          function: 'runCase',
-          case: message.case
-        });
         break
       case 'run-one-case':
         runningTabId = message.tabId
@@ -140,10 +136,19 @@ function getHost (url) {
 /**
  * 高亮聚焦需要录制的tab
  * @param tabId
+ * @param width
+ * @param height
  */
-function focusTab (tabId) {
+function focusTab (tabId, width, height) {
   chrome.tabs.get(tabId, function (tab) {
     chrome.tabs.highlight({windowId: tab.windowId, tabs: tab.index})
-    chrome.windows.update(tab.windowId, {focused: true})
+    let config = {
+      focused: true
+    }
+    if (width && height) {
+      config.width = width
+      config.height = height
+    }
+    chrome.windows.update(tab.windowId, config)
   })
 }
