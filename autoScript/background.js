@@ -143,6 +143,7 @@ function focusTab (tabId, width, height) {
   chrome.tabs.get(tabId, function (tab) {
     chrome.tabs.highlight({windowId: tab.windowId, tabs: tab.index})
     let config = {
+      state: 'normal', // 最大化时改变不了大小
       focused: true
     }
     if (width && height) {

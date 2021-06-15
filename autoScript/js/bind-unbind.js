@@ -131,6 +131,12 @@ function bind () {
   $(document).on('compositionstart', 'input', compositionstart)
   $(document).on('compositionend', 'input', compositionend)
 
+  $(document).on('keyup', 'textarea', onkeyup, )
+  $(document).on('keydown', 'textarea', onkeydown)
+  $(document).on('input', 'textarea', input)
+  $(document).on('compositionstart', 'textarea', compositionstart)
+  $(document).on('compositionend', 'textarea', compositionend)
+
   // 绑定鼠标移动事件
   document.addEventListener('mousemove', mousemove, true)
   // 给vue动态生成的dom绑定click事件
@@ -151,6 +157,12 @@ function unbind () {
   $(document).off('input', 'input', input)
   $(document).off('compositionstart', 'input', compositionstart)
   $(document).off('compositionend', 'input', compositionend)
+
+  $(document).off('keyup', 'textarea', onkeyup)
+  $(document).off('keydown', 'textarea', onkeydown)
+  $(document).off('input', 'textarea', input)
+  $(document).off('compositionstart', 'textarea', compositionstart)
+  $(document).off('compositionend', 'textarea', compositionend)
 
   // 绑定鼠标移动事件
   document.removeEventListener('mousemove', mousemove, true)
@@ -191,7 +203,7 @@ function startEvent (item, i) {
       target = document.elementFromPoint(item.x, item.y)
       target.dispatchEvent(click)
       // 为下一个输入事件做准备
-      if (item.tagName === 'INPUT') {
+      if (item.tagName === 'INPUT' || item.tagName === 'TEXTAREA') {
         target.focus && target.focus()
         focusTarget = target
       } else {
@@ -201,7 +213,11 @@ function startEvent (item, i) {
     case 'set-input-value':
       if (focusTarget) {
         // 具体看 https://stackoverflow.com/questions/23892547/what-is-the-best-way-to-trigger-onchange-event-in-react-js
-        let nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+        let prototype = window.HTMLInputElement.prototype
+        if (focusTarget.tagName === 'TEXTAREA') {
+          prototype = window.HTMLTextAreaElement.prototype
+        }
+        let nativeInputValueSetter = Object.getOwnPropertyDescriptor(prototype, "value").set;
         nativeInputValueSetter.call(focusTarget, item.value);
         let inputEvent = new InputEvent('input', {bubbles: true})
         focusTarget.dispatchEvent(inputEvent)

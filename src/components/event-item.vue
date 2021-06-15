@@ -76,7 +76,7 @@
         } else if (this.item.type === 'set-input-value') {
           // 向上查第一个click事件的xy坐标
           for (let i = this.itemIndex - 1; i >= 0; i--) {
-            if (this.list[i].type === 'click' && this.list[i].tagName === 'INPUT') {
+            if (this.list[i].type === 'click' && (this.list[i].tagName === 'INPUT' || this.list[i].tagName === 'TEXTAREA')) {
               xy.x = this.list[i].x
               xy.y = this.list[i].y
               break
