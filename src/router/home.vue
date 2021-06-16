@@ -365,6 +365,9 @@ export default {
                 width: data.width,
                 height: data.height
               }
+              if (data.responseConfig && data.responseConfig.length > 5) {
+                baseCaseDetail.responseConfig = JSON.parse(data.responseConfig)
+              }
               try {
                 baseEventList = JSON.parse(data.eventList) || []
               } catch (e) {
