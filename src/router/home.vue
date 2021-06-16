@@ -285,7 +285,13 @@ export default {
         // 创建sheet对象
         let sheetData = []
         let headers = ['name', 'urlPath', 'width', 'height', 'eventList']
-        // todo 抽出 eventList 输入事件中定义字段名称的列
+        // 抽出 eventList 输入事件中定义字段名称的列
+        item.eventList
+          .filter(event => event.type === 'set-input-value' && event.key && !headers.includes(event.key))
+          .forEach(event => {
+            item[event.key] = event.value
+            headers.unshift(event.key)
+          })
         sheetData.push({...item, eventList: JSON.stringify(item.eventList)})
         let sheet = XLSX.utils.json_to_sheet(sheetData, {header: headers})
 

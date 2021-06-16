@@ -59,7 +59,8 @@ function sendInputMessage (ev) {
       event: {
         type: 'set-input-value',
         value: ev.target.value,
-        time: delay
+        time: delay,
+        key: '' // 表格的列名称, 批量导入运行时用到
       }
     })
   }

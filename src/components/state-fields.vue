@@ -53,6 +53,9 @@
       },
       showMore () {
         this.limit += 20
+      },
+      defineKey () {
+        this.$emit('edit-state', 'key', {value: '请尽量使用不重复的key'})
       }
     }
   }
@@ -85,6 +88,9 @@
         :editable="true"
         @edit-state="(path, payload) => $emit('edit-state', path, payload)"
       />
+      <div v-if="displayedFields.type === 'set-input-value' && typeof fields.key === 'undefined'" style="margin-left: 14px;margin-top: 5px;">
+        <el-button  type="mini" @click="defineKey">定义key</el-button>
+      </div>
     </template>
     <i v-if="fieldsCount > limit" class="el-icon-more" @click="showMore()"></i>
   </div>
