@@ -62,3 +62,30 @@ export function openDownloadDialog(blob, fileName) {
   aLink.dispatchEvent(event)
   URL.revokeObjectURL(blob)
 }
+
+// 读取本地excel文件
+export function readWorkbookFromLocalFile(file, callback) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var data = e.target.result;
+    // 读取二进制的excel
+    var workbook = XLSX.read(data, {type: 'binary'});
+    if(callback) callback(workbook);
+  };
+  reader.readAsBinaryString(file);
+}
+
+// 获取excel第一行的内容
+export function getHeaderKeyList (sheet) {
+  var wbData = sheet; // 读取的excel单元格内容
+  var re = /^[A-Z]*1$/; // 匹配excel第一行的内容
+  var arr1 = [];
+  for (var key in wbData) { // excel第一行内容赋值给数组
+    if (wbData.hasOwnProperty(key)) {
+      if (re.test(key)) {
+        arr1.push(wbData[key].h);
+      }
+    }
+  }
+  return arr1;
+}

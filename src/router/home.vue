@@ -27,10 +27,10 @@
           </el-col>
           <el-col :span="8" class="table-td script-action">
             <div class="padding-8-0">
-              <el-button type="text" @click.stop="startLuzhi(index)">开始录制</el-button>
+              <el-button type="text" v-if="!importFlag" @click.stop="startLuzhi(index)">开始录制</el-button>
               <el-button type="text" @click.stop="deleteCase(index)">删除</el-button>
               <el-button type="text" @click.stop="runCase(index)">执行</el-button>
-              <el-button type="text" @click.stop="goDetail(index)">详情</el-button>
+              <el-button type="text" v-if="!importFlag" @click.stop="goDetail(index)">详情</el-button>
             </div>
           </el-col>
         </el-row>
@@ -40,6 +40,16 @@
           <el-button round type="success" @click="saveData">保存数据</el-button>
           <el-button round type="primary" @click="batchRun">批量执行</el-button>
           <el-button round type="warning" @click="exportScript">导出脚本</el-button>
+          <div style="min-height: 10px;"></div>
+          <el-upload
+            class="upload-demo"
+            action="123"
+            :multiple="false"
+            :show-file-list="false"
+            accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+            :before-upload="importScript">
+            <el-button round type="warning">导入脚本</el-button>
+          </el-upload>
         </div>
         <div style="min-height: 30px;"></div>
         <div>
@@ -93,10 +103,12 @@
 
 <script>
 import XLSX from 'xlsx'
-import {workbook2blob, openDownloadDialog} from '../assets/xlsx'
+import {workbook2blob, openDownloadDialog, readWorkbookFromLocalFile, getHeaderKeyList} from '../assets/xlsx'
 import {mapGetters} from 'vuex'
 import editDiv from '../components/edit-div'
 import caseDetail from './caseDetail'
+
+const fixedHeader = ['name', 'urlPath', 'width', 'height', 'eventList', 'responseConfig']
 export default {
   components: {
     caseDetail,
@@ -108,7 +120,8 @@ export default {
       runningCaseIndex: -1,
       result: {},
 
-      chooseEvent: {}
+      chooseEvent: {},
+      importFlag: false
     }
   },
   computed: {
@@ -131,7 +144,7 @@ export default {
     // tab-activated
     onTabActivated (activatedTab) {
       // console.log('onEventBus tab-activated', activatedTab)
-      if (this.runningCaseIndex !== -1 && this.caseList[this.runningCaseIndex].responseConfig) {
+      if (this.runningCaseIndex !== -1 &&  Array.isArray(this.caseList[this.runningCaseIndex].responseConfig)) {
         let pendingUrl = this.$getUrlPath(activatedTab.pendingUrl)
         let configList = this.caseList[this.runningCaseIndex].responseConfig.filter(item => item.type === 'newTab')
         configList.forEach(config => {
@@ -151,7 +164,7 @@ export default {
       let requestUrl = this.$getUrlPath(request.request.url)
       if ((request._resourceType === 'xhr' || request._resourceType === 'fetch') &&
         this.runningCaseIndex !== -1 &&
-        this.caseList[this.runningCaseIndex].responseConfig
+        Array.isArray(this.caseList[this.runningCaseIndex].responseConfig)
       ) {
         // console.log('onRequestFinished', requestUrl)
         let configList = this.caseList[this.runningCaseIndex].responseConfig.filter(item => item.type === 'ajax')
@@ -202,11 +215,26 @@ export default {
       this.luzhiDialogStatus = false
     },
     saveData () {
-      this.backgroundPageConnection.postMessage({
-        type: 'save-case',
-        tabId: chrome.devtools.inspectedWindow.tabId,
-        data: JSON.parse(JSON.stringify(this.caseList))
-      });
+      if (this.importFlag) {
+        this.$alert('之前录制的脚本将被覆盖!确定要保存导入的数据吗?', '保存提示', {
+          confirmButtonText: '确定',
+          callback: action => {
+            if (action === 'confirm') {
+              this.backgroundPageConnection.postMessage({
+                type: 'save-case',
+                tabId: chrome.devtools.inspectedWindow.tabId,
+                data: JSON.parse(JSON.stringify(this.caseList))
+              })
+            }
+          }
+        })
+      } else {
+        this.backgroundPageConnection.postMessage({
+          type: 'save-case',
+          tabId: chrome.devtools.inspectedWindow.tabId,
+          data: JSON.parse(JSON.stringify(this.caseList))
+        })
+      }
     },
     deleteCase (index) {
       this.$store.commit('deleteCase', index)
@@ -284,7 +312,7 @@ export default {
       this.caseList.forEach(item => {
         // 创建sheet对象
         let sheetData = []
-        let headers = ['name', 'urlPath', 'width', 'height', 'eventList']
+        let headers = JSON.parse(JSON.stringify(fixedHeader))
         // 抽出 eventList 输入事件中定义字段名称的列
         item.eventList
           .filter(event => event.type === 'set-input-value' && event.key && !headers.includes(event.key))
@@ -292,7 +320,15 @@ export default {
             item[event.key] = event.value
             headers.unshift(event.key)
           })
-        sheetData.push({...item, eventList: JSON.stringify(item.eventList)})
+        let caseRow = {
+          ...item,
+          eventList: JSON.stringify(item.eventList)
+        }
+        if (Array.isArray(item.responseConfig)) {
+          caseRow.responseConfig = JSON.stringify(item.responseConfig)
+        }
+        sheetData.push(caseRow)
+
         let sheet = XLSX.utils.json_to_sheet(sheetData, {header: headers})
 
         // 在工作簿中添加sheet页
@@ -304,6 +340,56 @@ export default {
       const workbookBlob = workbook2blob(workBook)
       // 导出工作薄
       openDownloadDialog(workbookBlob, '自动化脚本.xlsx')
+    },
+    importScript (file) {
+      readWorkbookFromLocalFile(file, wb => {
+        /**
+         * workBook => caseList:[]
+         * 1. 先把sheets循环,知道有几个脚本
+         * 2. 再把每个sheet中有几行循环, 知道每个脚本有几个用例
+         * 3. 再整合成一个大的caseList
+         */
+        let caseList = []
+        wb.SheetNames.forEach(sheetName => {
+          let xlsxData = XLSX.utils.sheet_to_json(wb.Sheets[sheetName])
+          let allKeyList = getHeaderKeyList(wb.Sheets[sheetName])
+          let customKeyList = allKeyList.filter(key => !fixedHeader.includes(key))
+          let baseCaseDetail = {}
+          let baseEventList = []
+          xlsxData.forEach((data, index)=> {
+            // 表格里可以只保留第一行的脚本数据 其他行配置变量 节省空间
+            if (index === 0) {
+              baseCaseDetail = {
+                name: data.name,
+                urlPath: data.urlPath,
+                width: data.width,
+                height: data.height
+              }
+              try {
+                baseEventList = JSON.parse(data.eventList) || []
+              } catch (e) {
+                console.error('解析eventList失败', e)
+              }
+            }
+            // 处理eventList 把变量塞进去
+            let eventList = []
+            baseEventList.forEach(event => {
+              if (event.type === 'set-input-value' && customKeyList.includes(event.key)) {
+                event.value = data[event.key]
+              }
+              eventList.push(event)
+            })
+            caseList.push({
+              ...baseCaseDetail,
+              name: baseCaseDetail.name + '-' + index,
+              eventList: JSON.parse(JSON.stringify(eventList))
+            })
+          })
+        })
+        this.$store.commit('setCaseList', caseList)
+        this.importFlag = true
+      })
+      return false
     }
   }
 }
