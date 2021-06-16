@@ -280,19 +280,18 @@ export default {
       // 创建一个工作薄
       let workBook = XLSX.utils.book_new()
 
-      // 创建sheet对象
-      let sheetData = []
-      let headers = ['name', 'urlPath', 'width', 'height', 'eventList']
+      // 一个脚本一个sheet 方便之后批量导入运行
       this.caseList.forEach(item => {
-        sheetData.push({
-          ...item,
-          eventList: JSON.stringify(item.eventList)
-        })
-      })
-      let sheet = XLSX.utils.json_to_sheet(sheetData, {header: headers})
+        // 创建sheet对象
+        let sheetData = []
+        let headers = ['name', 'urlPath', 'width', 'height', 'eventList']
+        // todo 抽出 eventList 输入事件中定义字段名称的列
+        sheetData.push({...item, eventList: JSON.stringify(item.eventList)})
+        let sheet = XLSX.utils.json_to_sheet(sheetData, {header: headers})
 
-      // 在工作簿中添加sheet页
-      XLSX.utils.book_append_sheet(workBook, sheet, '自动化脚本')
+        // 在工作簿中添加sheet页
+        XLSX.utils.book_append_sheet(workBook, sheet, item.name)
+      })
 
       // 转化格式，导出文件
       // 创建工作薄blob
