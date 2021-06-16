@@ -39,6 +39,7 @@
           <el-button round type="primary" @click="addCase">添加测试脚本</el-button>
           <el-button round type="success" @click="saveData">保存数据</el-button>
           <el-button round type="primary" @click="batchRun">批量执行</el-button>
+          <el-button round type="warning" @click="exportScript">导出脚本</el-button>
         </div>
         <div style="min-height: 30px;"></div>
         <div>
@@ -91,6 +92,8 @@
 </template>
 
 <script>
+import XLSX from 'xlsx'
+import {workbook2blob, openDownloadDialog} from '../assets/xlsx'
 import {mapGetters} from 'vuex'
 import editDiv from '../components/edit-div'
 import caseDetail from './caseDetail'
@@ -272,6 +275,30 @@ export default {
     },
     goDetail (index) {
       this.$router.push({name: 'caseDetail', params: {index}})
+    },
+    exportScript () {
+      // 创建一个工作薄
+      let workBook = XLSX.utils.book_new()
+
+      // 创建sheet对象
+      let sheetData = []
+      let headers = ['name', 'urlPath', 'width', 'height', 'eventList']
+      this.caseList.forEach(item => {
+        sheetData.push({
+          ...item,
+          eventList: JSON.stringify(item.eventList)
+        })
+      })
+      let sheet = XLSX.utils.json_to_sheet(sheetData, {header: headers})
+
+      // 在工作簿中添加sheet页
+      XLSX.utils.book_append_sheet(workBook, sheet, '自动化脚本')
+
+      // 转化格式，导出文件
+      // 创建工作薄blob
+      const workbookBlob = workbook2blob(workBook)
+      // 导出工作薄
+      openDownloadDialog(workbookBlob, '自动化脚本.xlsx')
     }
   }
 }
