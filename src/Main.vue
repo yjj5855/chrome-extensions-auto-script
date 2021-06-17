@@ -13,10 +13,12 @@
       </div>
     </el-alert>
     <router-view class="router-view"></router-view>
+    <div style="position:fixed;left: 15px;bottom: 15px;">tabId: {{tabId}}</div>
   </div>
 </template>
 
 <script>
+  import Vue from 'vue'
   import {mapGetters} from 'vuex'
   export default {
     created () {
@@ -31,6 +33,7 @@
     },
     data () {
       return {
+        tabId: ''
       }
     },
     methods: {
@@ -43,6 +46,7 @@
         })
       },
       init () {
+        this.tabId = chrome.devtools.inspectedWindow.tabId
         // 连接bg
         this.$store.commit('connect')
 
@@ -61,6 +65,22 @@
             case 'tab-activated':
               // 发送eventbus home.vue 执行时监听
               this.$EventBus.$emit('tab-activated', message.tab)
+              break
+            case 'run-case':
+              // 1. 找到脚本 并替换变量
+              // 2. 执行脚本
+              let index = this.caseList.findIndex(item => item.name === message.name)
+              if (index < 0) {return}
+              message.customKey
+              let newCase = JSON.parse(JSON.stringify(this.caseList[index]))
+              newCase.eventList = newCase.eventList.map(event => {
+                if (event.type === 'set-input-value' && event.key in message.customKey) {
+                  event.value = message.customKey[event.key]
+                }
+                return event
+              })
+              Vue.set(this.caseList, index, newCase)
+              this.$EventBus.$emit('run-case', index)
               break
           }
         })

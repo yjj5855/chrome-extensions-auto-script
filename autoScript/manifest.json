@@ -21,5 +21,8 @@
       ]
     }
   ],
-  "devtools_page": "devtools.html"
+  "devtools_page": "devtools.html",
+  "externally_connectable": {
+    "matches": ["http://localhost:8089/*"]
+  }
 }

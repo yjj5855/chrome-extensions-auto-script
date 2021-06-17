@@ -132,6 +132,18 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   return true;
 });
 
+
+// 监听正常网页发送的消息
+chrome.runtime.onMessageExternal.addListener(function(request, sender, sendResponse) {
+  if (request.tabId in connections) {
+    connections[request.tabId].postMessage(request.data)
+    sendResponse({success: true})
+  } else {
+    console.log("onMessageExternal Tab not found in connection list.");
+    sendResponse({success: false})
+  }
+})
+
 function getHost (url) {
   // 必须是http开头或者https开头，结尾为'/'
   let reg = /^http(s)?:\/\/(.*?)\//

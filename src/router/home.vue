@@ -139,6 +139,10 @@ export default {
   created () {
   },
   mounted () {
+    this.$EventBus.$on('run-case', this.runCase)
+  },
+  beforeDestroy() {
+    this.$EventBus.$off('run-case', this.runCase)
   },
   methods: {
     // tab-activated
