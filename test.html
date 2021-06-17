@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>本地测试页面</title>
+</head>
+<body>
+<div>
+  <span>tabId</span> <input id="tabId" value="759"/>
+</div>
+<div>
+  <span>脚本名称</span> <input id="name" value="搜索哈哈"/>
+</div>
+<button id="button-1">调用其他页面脚本</button>
+<div>
+  <span>执行结果</span> <pre id="response"></pre>
+</div>
+<script src="autoScript/js/jquery-1.8.3.js"></script>
+<script>
+
+  $('#button-1').on('click', sendMessage)
+  function sendMessage () {
+    let editorExtensionId = 'odfckenjjgjokihccfabfoecjclggmka'
+    let tabId = $('#tabId')[0].value
+    let name = $('#name')[0].value
+    chrome.runtime.sendMessage(
+      editorExtensionId,
+      {tabId: tabId, data: {type: 'run-case', name: name, customKey: {'姓名': '天龙'}}},
+      (response) => {
+        $('#response').text(JSON.stringify(response, null, 2))
+        console.log(response.success)
+      }
+    )
+  }
+</script>
+</body>
+</html>

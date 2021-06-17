@@ -139,10 +139,13 @@ export default {
   created () {
   },
   mounted () {
-    this.$EventBus.$on('run-case', this.runCase)
+    this.$EventBus.$on('run-case', async ({index, sendResponse}) => {
+      await this.runCase(index)
+      sendResponse(this.result[this.caseList[index].name])
+    })
   },
   beforeDestroy() {
-    this.$EventBus.$off('run-case', this.runCase)
+    this.$EventBus.$off('run-case')
   },
   methods: {
     // tab-activated

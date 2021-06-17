@@ -66,22 +66,33 @@
               // 发送eventbus home.vue 执行时监听
               this.$EventBus.$emit('tab-activated', message.tab)
               break
-            case 'run-case':
-              // 1. 找到脚本 并替换变量
-              // 2. 执行脚本
-              let index = this.caseList.findIndex(item => item.name === message.name)
-              if (index < 0) {return}
-              message.customKey
-              let newCase = JSON.parse(JSON.stringify(this.caseList[index]))
-              newCase.eventList = newCase.eventList.map(event => {
-                if (event.type === 'set-input-value' && event.key in message.customKey) {
-                  event.value = message.customKey[event.key]
-                }
-                return event
-              })
-              Vue.set(this.caseList, index, newCase)
-              this.$EventBus.$emit('run-case', index)
-              break
+          }
+        })
+
+        /**
+         * 长连接没有sendResponse回调, 所以使用这种方式回调
+         */
+        chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+          let message = msg.data
+          console.log('devtool chrome.runtime.onMessage', msg)
+          if (+msg.tabId === +chrome.devtools.inspectedWindow.tabId && message) {
+            switch (message.type) {
+              case 'run-case':
+                // 1. 找到脚本 并替换变量
+                // 2. 执行脚本
+                let index = this.caseList.findIndex(item => item.name === message.name)
+                if (index < 0) {return}
+                let newCase = JSON.parse(JSON.stringify(this.caseList[index]))
+                newCase.eventList = newCase.eventList.map(event => {
+                  if (event.type === 'set-input-value' && event.key in message.customKey) {
+                    event.value = message.customKey[event.key]
+                  }
+                  return event
+                })
+                Vue.set(this.caseList, index, newCase)
+                this.$EventBus.$emit('run-case', {index, sendResponse})
+                return true
+            }
           }
         })
         // 发送初始化连接消息

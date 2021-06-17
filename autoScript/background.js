@@ -133,14 +133,18 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 });
 
 
-// 监听正常网页发送的消息
+// 监听externally_connectable配置的正常网页发送的消息
 chrome.runtime.onMessageExternal.addListener(function(request, sender, sendResponse) {
   if (request.tabId in connections) {
-    connections[request.tabId].postMessage(request.data)
-    sendResponse({success: true})
+    // 不使用长连接发送消息 原因是不能设置回调
+    // connections[request.tabId].postMessage(request.data)
+
+    chrome.runtime.sendMessage(request, response => {
+      sendResponse(response)
+    })
+    return true // 返回 true 表示是异步回调
   } else {
-    console.log("onMessageExternal Tab not found in connection list.");
-    sendResponse({success: false})
+    sendResponse({error: 'onMessageExternal Tab not found in connection list.'})
   }
 })
 

@@ -23,6 +23,6 @@
   ],
   "devtools_page": "devtools.html",
   "externally_connectable": {
-    "matches": ["http://localhost:8089/*"]
+    "matches": ["http://localhost:63342/*"]
   }
 }
