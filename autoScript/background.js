@@ -84,6 +84,9 @@ chrome.runtime.onConnect.addListener(function (port) {
           function: 'unHighlight'
         });
         break
+      case 'remove-tab':
+        chrome.tabs.remove(message.tabId)
+        break
     }
   }
 

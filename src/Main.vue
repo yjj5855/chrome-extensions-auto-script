@@ -63,8 +63,10 @@
               this.caseList[this.current].eventList.push(message.event)
               break
             case 'tab-activated':
-              // 发送eventbus home.vue 执行时监听
-              this.$EventBus.$emit('tab-activated', message.tab)
+              if (message.tab) {
+                // 发送eventbus home.vue 执行时监听
+                this.$EventBus.$emit('tab-activated', message.tab)
+              }
               break
           }
         })

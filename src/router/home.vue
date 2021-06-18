@@ -163,6 +163,15 @@ export default {
           }
         })
       }
+      // 目前方式是 直接关闭tab
+      setTimeout(() => {
+        if (+activatedTab.id !== +chrome.devtools.inspectedWindow.tabId) {
+          this.backgroundPageConnection.postMessage({
+            type: 'remove-tab',
+            tabId: activatedTab.id
+          })
+        }
+      }, 2000)
     },
     // 测试请求响应
     onRequestFinished (request) {
