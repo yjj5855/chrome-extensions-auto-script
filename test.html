@@ -5,37 +5,102 @@
   <title>本地测试页面</title>
 </head>
 <body>
-<div>
-  <span>tabId</span> <input id="tabId" value="759"/>
-</div>
-<div>
-  <span>脚本名称</span> <input id="name" value="掘金搜索"/>
-</div>
-<div>
-  <span>搜索关键字</span> <input id="key" value="哈哈"/>
-</div>
-<button id="button-1">调用其他页面脚本</button>
-<div>
-  <span>执行结果</span> <pre id="response"></pre>
-</div>
-<script src="autoScript/js/jquery-1.8.3.js"></script>
-<script>
+<div id="app">
+  <button @click="getCaseList">获取所有脚本名称</button>
+  <div v-for="(item, index) in devtoolTabList" :key="index">
+    <div>
+      <h3 style="margin: 0;">{{item.tab.title}} <small>tabId: {{item.tab.id}}</small></h3>
+      <div v-for="(caseDetail, i) in item.caseList" :key="i" @click="setCase(item, caseDetail)">
+        {{i + 1}}. {{caseDetail.name}}
+      </div>
+    </div>
+  </div>
 
-  $('#button-1').on('click', sendMessage)
-  function sendMessage () {
-    let editorExtensionId = 'odfckenjjgjokihccfabfoecjclggmka'
-    let tabId = $('#tabId')[0].value
-    let name = $('#name')[0].value
-    let key = $('#key')[0].value
-    chrome.runtime.sendMessage(
-      editorExtensionId,
-      {tabId: tabId, data: {type: 'run-case', name: name, customKey: {'搜索关键字': key}}},
-      (response) => {
-        $('#response').text(JSON.stringify(response, null, 2))
-        console.log(response.success)
+  <div style="margin-top: 20px;">
+    <span>tabId</span> <input v-model="tabId" readonly/> <span>脚本名称</span> <input v-model="name" readonly/>
+  </div>
+  <div style="background-color: #f0f0f0;padding: 10px;">
+    <div>自定义字段</div>
+    <div v-for="(val, key) in customKey" :key="key">
+      <span>{{key}}</span> <input v-model="val"/>
+    </div>
+  </div>
+
+  <button @click="sendMessage">调用其他页面脚本</button>
+
+  <div>
+    <span>执行结果</span> <pre v-text="respText"></pre>
+  </div>
+</div>
+
+<script src="autoScript/js/jquery-1.8.3.js"></script>
+<script src="./node_modules/vue/dist/vue.min.js"></script>
+<script>
+  let editorExtensionId = 'odfckenjjgjokihccfabfoecjclggmka'
+  let currentTabId = ''
+  let backgroundPageConnection
+  new Vue({
+    el: '#app',
+    data () {
+      return {
+        tabId: '759',
+        name: '搜索',
+        customKey: {
+
+        },
+        respText: '',
+
+        devtoolTabList: []
       }
-    )
-  }
+    },
+    created () {
+      console.log('created')
+      backgroundPageConnection = chrome.runtime.connect(editorExtensionId, {name: 'autoscript'})
+      backgroundPageConnection.onMessage.addListener((request, sender, sendResponse) => {
+        console.log(request)
+        switch (request.type) {
+          case 'init':
+            currentTabId = request.tabId
+            break
+          case 'get-caseList':
+            this.devtoolTabList.push(request.tabDetail || {})
+            break
+        }
+      })
+      backgroundPageConnection.postMessage({type: 'init'})
+    },
+    methods: {
+      sendMessage () {
+        this.response = []
+        chrome.runtime.sendMessage(
+          editorExtensionId,
+          {tabId: this.tabId, data: {type: 'run-case', name: this.name, customKey: this.customKey}},
+          (response) => {
+            this.respText = JSON.stringify(response, null, 2)
+            console.log(response.success)
+          }
+        )
+      },
+      getCaseList () {
+        this.devtoolTabList = []
+        backgroundPageConnection.postMessage({
+          type: 'get-connected-caseList',
+          notifyTabId: currentTabId
+        })
+      },
+      setCase (tabDetail, item) {
+        this.tabId = tabDetail.tab.id
+        this.name = item.name
+
+        this.$set(this, 'customKey', {})
+        item.eventList.map(event => {
+          if (event.type === 'set-input-value' && event.key) {
+            this.$set(this.customKey, event.key, event.value)
+          }
+        })
+      }
+    }
+  })
 </script>
 </body>
 </html>

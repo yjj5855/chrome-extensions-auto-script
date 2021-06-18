@@ -1,6 +1,7 @@
 
 // 总连接池
-var connections = {};
+var connections = {}
+var externalConnections = {}
 var runningTabId = null
 
 chrome.runtime.onInstalled.addListener((detail) => {
@@ -87,6 +88,11 @@ chrome.runtime.onConnect.addListener(function (port) {
       case 'remove-tab':
         chrome.tabs.remove(message.tabId)
         break
+      case 'get-caseList':
+        if (message.notifyTabId && externalConnections[message.notifyTabId]) {
+          externalConnections[message.notifyTabId].postMessage(message)
+        }
+        break
     }
   }
 
@@ -149,6 +155,45 @@ chrome.runtime.onMessageExternal.addListener(function(request, sender, sendRespo
   } else {
     sendResponse({error: 'onMessageExternal Tab not found in connection list.'})
   }
+})
+
+// 监听externally_connectable配置的正常网页发送的长连接
+chrome.runtime.onConnectExternal.addListener(function(port) {
+  let tabId = port.sender.tab.id
+  if (tabId) {
+    externalConnections[tabId] = port
+  }
+  let extensionListener = function (msg, sender) {
+    switch (msg.type) {
+      case 'init':
+        port.postMessage({type: 'init', tabId: sender.sender.tab.id})
+        break
+      // 给每个连接都发送消息, devtool发送到bg.js 接收一个发送一个
+      case 'get-connected-caseList':
+        for (let id in connections) {
+          connections[id].postMessage({
+            type: 'get-caseList',
+            notifyTabId: msg.notifyTabId
+          })
+        }
+        break
+    }
+  }
+
+  // Listen to messages sent from the externally_connectable page
+  port.onMessage.addListener(extensionListener);
+
+  port.onDisconnect.addListener(function(port) {
+    port.onMessage.removeListener(extensionListener);
+
+    var tabs = Object.keys(externalConnections);
+    for (var i=0, len=tabs.length; i < len; i++) {
+      if (externalConnections[tabs[i]] == port) {
+        delete externalConnections[tabs[i]]
+        break;
+      }
+    }
+  });
 })
 
 function getHost (url) {

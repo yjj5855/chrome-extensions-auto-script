@@ -68,6 +68,21 @@
                 this.$EventBus.$emit('tab-activated', message.tab)
               }
               break
+            case 'get-caseList':
+              if (this.caseList.length === 0) {
+                return
+              }
+              chrome.tabs.get(chrome.devtools.inspectedWindow.tabId, (tab) => {
+                this.backgroundPageConnection.postMessage({
+                  type: 'get-caseList',
+                  notifyTabId: message.notifyTabId,
+                  tabDetail: {
+                    tab: tab,
+                    caseList: this.caseList
+                  }
+                })
+              })
+              break
           }
         })
 
