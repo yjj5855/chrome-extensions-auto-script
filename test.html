@@ -22,7 +22,7 @@
   <div style="background-color: #f0f0f0;padding: 10px;">
     <div>自定义字段</div>
     <div v-for="(val, key) in customKey" :key="key">
-      <span>{{key}}</span> <input v-model="val"/>
+      <span>{{key}}</span> <input v-model="customKey[key]"/>
     </div>
   </div>
 
