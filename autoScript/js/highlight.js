@@ -2,16 +2,18 @@
 let overlay
 let overlayContent
 let currentInstance
+let contentWindow = window
+let contentDocument = document
 
 function createOverlay() {
   if (overlay) return
-  overlay = document.createElement('div')
+  overlay = contentDocument.createElement('div')
   overlay.style.backgroundColor = 'rgba(65, 184, 131, 0.35)'
   overlay.style.position = 'fixed'
   overlay.style.zIndex = '99999999999998'
   overlay.style.pointerEvents = 'none'
   overlay.style.borderRadius = '3px'
-  overlayContent = document.createElement('div')
+  overlayContent = contentDocument.createElement('div')
   overlayContent.style.position = 'fixed'
   overlayContent.style.zIndex = '99999999999999'
   overlayContent.style.pointerEvents = 'none'
@@ -30,11 +32,11 @@ function showOverlay (bounds, children) {
   if (!children.length) return
 
   positionOverlay(bounds)
-  document.body.appendChild(overlay)
+  contentDocument.body.appendChild(overlay)
 
   overlayContent.innerHTML = ''
   children.forEach(child => overlayContent.appendChild(child))
-  document.body.appendChild(overlayContent)
+  contentDocument.body.appendChild(overlayContent)
 
   positionOverlayContent(bounds)
 }
@@ -42,8 +44,8 @@ function showOverlay (bounds, children) {
 function getComponentBounds (el = null) {
   if (!el) {
     return {
-      width: window.innerWidth,
-      height: window.innerHeight,
+      width: contentWindow.innerWidth,
+      height: contentWindow.innerHeight,
       top: 0,
       left: 0
     }
@@ -65,8 +67,8 @@ function positionOverlayContent ({ wifth = 0, height = 0, top = 0, left = 0 }) {
   let contentLeft = left
   if (contentLeft < 0) {
     contentLeft = 0
-  } else if (contentLeft + contentWidth > window.innerWidth) {
-    contentLeft = window.innerWidth - contentWidth
+  } else if (contentLeft + contentWidth > contentWindow.innerWidth) {
+    contentLeft = contentWindow.innerWidth - contentWidth
   }
   let contentTop = top - contentHeight - 2
   if (contentTop < 0) {
@@ -74,40 +76,50 @@ function positionOverlayContent ({ wifth = 0, height = 0, top = 0, left = 0 }) {
   }
   if (contentTop < 0) {
     contentTop = 0
-  } else if (contentTop + contentHeight > window.innerHeight) {
-    contentTop = window.innerHeight - contentHeight
+  } else if (contentTop + contentHeight > contentWindow.innerHeight) {
+    contentTop = contentWindow.innerHeight - contentHeight
   }
   overlayContent.style.left = ~~contentLeft + 'px'
   overlayContent.style.top = ~~contentTop + 'px'
 }
 
 function highlight (data) {
+  // 判断是不是iframe中的元素
   let el = document.elementFromPoint(data.x, data.y)
+  if (el.tagName === 'IFRAME') {
+    contentWindow = el.contentWindow
+    contentDocument = contentWindow.document
+    el = contentDocument.elementFromPoint(data.clientX, data.clientY)
+  } else {
+    contentWindow = window
+    contentDocument = document
+  }
+
   let bounds = getComponentBounds(el)
   createOverlay()
   // Name
   const name = data.content || 'Anonymous'
-  const pre = document.createElement('span')
+  const pre = contentDocument.createElement('span')
   pre.style.opacity = '0.6'
   pre.innerText = '<'
-  const text = document.createElement('span')
+  const text = contentDocument.createElement('span')
   text.style.fontWeight = 'bold'
   text.style.color = '#09ab56'
   text.innerText = name
-  const post = document.createElement('span')
+  const post = contentDocument.createElement('span')
   post.style.opacity = '0.6'
   post.innerText = '>'
 
   // Size
-  const size = document.createElement('span')
+  const size = contentDocument.createElement('span')
   size.style.opacity = '0.5'
   size.style.marginLeft = '6px'
-  size.appendChild(document.createTextNode((Math.round(bounds.width * 100) / 100).toString()))
-  const multiply = document.createElement('span')
+  size.appendChild(contentDocument.createTextNode((Math.round(bounds.width * 100) / 100).toString()))
+  const multiply = contentDocument.createElement('span')
   multiply.style.marginLeft = multiply.style.marginRight = '2px'
   multiply.innerText = '×'
   size.appendChild(multiply)
-  size.appendChild(document.createTextNode((Math.round(bounds.height * 100) / 100).toString()))
+  size.appendChild(contentDocument.createTextNode((Math.round(bounds.height * 100) / 100).toString()))
 
   currentInstance = el
 

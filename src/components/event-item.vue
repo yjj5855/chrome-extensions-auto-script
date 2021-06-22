@@ -68,10 +68,14 @@
         if (this.item.type === 'click') {
           xy.x = this.item.x
           xy.y = this.item.y
+          xy.clientX = this.item.clientX
+          xy.clientY = this.item.clientY
           xy.content = '点击'
         } else if (this.item.type === 'scroll') {
           xy.x = this.item.mouseX
           xy.y = this.item.mouseY
+          xy.clientX = this.item.clientX
+          xy.clientY = this.item.clientY
           xy.content = '滚动'
         } else if (this.item.type === 'set-input-value') {
           // 向上查第一个click事件的xy坐标
@@ -79,6 +83,8 @@
             if (this.list[i].type === 'click' && (this.list[i].tagName === 'INPUT' || this.list[i].tagName === 'TEXTAREA')) {
               xy.x = this.list[i].x
               xy.y = this.list[i].y
+              xy.clientX = this.list[i].clientX
+              xy.clientY = this.list[i].clientY
               break
             }
           }

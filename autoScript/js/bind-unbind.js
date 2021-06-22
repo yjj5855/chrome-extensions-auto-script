@@ -6,13 +6,42 @@ function throttle (cb, delay = 100) {
       clearTimeout(timer)
     }
     timer = setTimeout(() => {
-      cb && cb(ev);
+      cb && cb.bind(this)(ev);
     }, delay)
   };
 }
+
+/**
+ * 获取最底层iframe页面中鼠标点击的坐标
+ */
+function getPosition_Iframe (event = {}, contentWindow) {
+  var parentWindow = contentWindow.parent;
+  var tmpLocation = contentWindow.location;
+  var target = null;
+  var left = 0;
+  var top = 0;
+  while (parentWindow != null && typeof (parentWindow) != 'undefined' && tmpLocation.pathname != parentWindow.location.pathname) {
+    for (var x = 0; x < parentWindow.frames.length; x++) {
+      if (tmpLocation.pathname == parentWindow.frames[x].location.pathname) {
+        target = parentWindow.frames[x].frameElement;
+        break;
+      }
+    }
+    do {
+      left += target.offsetLeft || 0;
+      top += target.offsetTop || 0;
+      target = target.offsetParent;
+    } while (target)
+    tmpLocation = parentWindow.location;
+    parentWindow = parentWindow.parent;
+  }
+  let xy =  {x: left + (event.clientX || 0), y: top + (event.clientY || 0)}
+  // console.log(xy)
+  return xy
+}
+
 function onclick (ev) {
-  const x = ev.clientX;
-  const y = ev.clientY;
+  let {x, y} = getPosition_Iframe(ev, this)
   let delay = new Date().getTime() - window.startTime
   if (delay > 5 && !window.running) {
     window.startTime += delay
@@ -21,6 +50,8 @@ function onclick (ev) {
       event: {
         x,
         y,
+        clientX: ev.clientX,
+        clientY: ev.clientY,
         type: 'click',
         tagName: ev.target.tagName,
         time: delay
@@ -68,20 +99,31 @@ function sendInputMessage (ev) {
 // 键盘输入事件逻辑 end
 
 // 页面滚动事件逻辑
-let mouseX = 0;
-let mouseY = 0;
+let mouseClientX = 0;
+let mouseClientY = 0;
+let x = 0;
+let y = 0;
 let scrollStartEl = null; //用于记录滚动的起始元素，为了保证重现操作时为元素设置scrollTop时不出现偏差
 let scrollElementSet = new Set();
+
+// this = contentWindow
 function setScrollWatcher (ev) {
-  mouseX = ev && ev.clientX || mouseX;
-  mouseY = ev && ev.clientY || mouseY;
-  scrollStartEl = document.elementFromPoint(mouseX, mouseY);
+  let xy = getPosition_Iframe(ev, this)
+  if (ev) {
+    x = xy.x
+    y = xy.y
+  }
+  mouseClientX = ev && ev.clientX || mouseClientX;
+  mouseClientY = ev && ev.clientY || mouseClientY;
+  let doc = this.document
+  scrollStartEl = doc.elementFromPoint(mouseClientX, mouseClientY);
+  console.log(`scrollStartEl x:${x} y:${y} clientX:${mouseClientX} clientY${mouseClientY}`, scrollStartEl)
   let el = scrollStartEl;
   while (el) {
     if (scrollElementSet.has(el)) {
       el = null;
     } else {
-      el.onscroll = throttle(recordScrollInfo);
+      el.onscroll = throttle(recordScrollInfo.bind(this));
       scrollElementSet.add(el);
       el = el.parentNode;
     }
@@ -90,10 +132,12 @@ function setScrollWatcher (ev) {
 function recordScrollInfo (ev) {
   let el = scrollStartEl;
   // 单纯的滚动也可能引起鼠标对应的dom的变化，滚动结束也需要setScrollWatcher
-  setScrollWatcher();
+  setScrollWatcher.bind(this)();
   let scrollRecordInfo = {
-    mouseX: mouseX,
-    mouseY: mouseY,
+    x,
+    y,
+    clientX: mouseClientX,
+    clientY: mouseClientY,
     scrollList: []
   }
   while (el) {
@@ -103,7 +147,10 @@ function recordScrollInfo (ev) {
   // scrollList 可能为空 是document.elementFromPoint获取不到,
   // 这种情况是用户拖动了滚动条, 但是点击的位置没有任何dom导致, 一般是在页面的最底部拖动导致
   if (scrollRecordInfo.scrollList.length === 0) {
-    scrollRecordInfo.scrollList.push({top: $('html').scrollTop(), left: $('html').scrollLeft()})
+    scrollRecordInfo.scrollList.push({
+      top: $('html', this.document).scrollTop(),
+      left: $('html', this.document).scrollLeft()
+    })
   }
   let delay = new Date().getTime() - window.startTime
   if (delay > 5 && !window.running) {
@@ -121,33 +168,66 @@ function recordScrollInfo (ev) {
 }
 // 页面滚动事件逻辑 end
 const mousemove = throttle(setScrollWatcher)
+
+function bindEvent (doc, contentWindow) {
+// 不用 jquery on方法, useCapture设置为true在捕获时就触发, 是为了避免stopPropagation的情况
+  doc.addEventListener('click', onclick.bind(contentWindow), true)
+
+  $('input', doc).on('keyup', onkeyup)
+  $('input', doc).on('keydown', 'input', onkeydown)
+  $('input', doc).on('input', 'input', input)
+  $('input', doc).on('compositionstart', 'input', compositionstart)
+  $('input', doc).on('compositionend', 'input', compositionend)
+
+  $('textarea', doc).on('keyup', onkeyup)
+  $('textarea', doc).on('keydown', 'input', onkeydown)
+  $('textarea', doc).on('input', 'input', input)
+  $('textarea', doc).on('compositionstart', 'input', compositionstart)
+  $('textarea', doc).on('compositionend', 'input', compositionend)
+
+  // 绑定鼠标移动事件 iframe 里还没做
+  doc.addEventListener('mousemove', throttle(setScrollWatcher.bind(contentWindow)), true)
+}
+
+let iframes = new Set()
 function bind () {
   window.startTime = new Date().getTime()
-  // 不用 jquery on方法, useCapture设置为true在捕获时就触发, 是为了避免stopPropagation的情况
-  document.addEventListener('click', onclick, true)
 
-  $(document).on('keyup', 'input', onkeyup, )
-  $(document).on('keydown', 'input', onkeydown)
-  $(document).on('input', 'input', input)
-  $(document).on('compositionstart', 'input', compositionstart)
-  $(document).on('compositionend', 'input', compositionend)
+  bindEvent(document, window)
 
-  $(document).on('keyup', 'textarea', onkeyup, )
-  $(document).on('keydown', 'textarea', onkeydown)
-  $(document).on('input', 'textarea', input)
-  $(document).on('compositionstart', 'textarea', compositionstart)
-  $(document).on('compositionend', 'textarea', compositionend)
+  // 给iframes添加事件
+  $('iframe').each((index, iframe) => {
+    iframes.add(iframe)
+    // 给当前iframes添加事件
+    let iframeContentWindow = iframe.contentWindow
+    let doc = iframeContentWindow.document
+    doc.removeEventListener('click', onclick.bind(iframeContentWindow), true)
+    bindEvent(doc, iframeContentWindow)
 
-  // 绑定鼠标移动事件
-  document.addEventListener('mousemove', mousemove, true)
-  // 给vue动态生成的dom绑定click事件
-  // $(document).bind('DOMNodeInserted', function(e) {
-  //   console.log(e)
-  //   $(e.target).on('click', '*',onclick)
-  // })
-  // $(document).bind('DOMNodeRemoved', function(e) {
-  //   $(e.target).off('click', '*',onclick)
-  // })
+    // 给变化后的iframes添加事件
+    $(iframe).on('load', function (event) {
+      console.log('iframe.onload')
+      iframes.add(iframe)
+      iframeContentWindow = iframe.contentWindow
+      doc =  iframeContentWindow.document
+      doc.removeEventListener('click', onclick.bind(iframeContentWindow), true)
+      bindEvent(doc, iframeContentWindow)
+    })
+  })
+
+  // 给动态生成的iframe绑定事件
+  $(document).bind('DOMNodeInserted', throttle(() => {
+    $('iframe').each((index, iframe) => {
+      if (!iframes.has(iframe)) {
+        let iframeContentWindow = iframe.contentWindow
+        let doc = iframeContentWindow.document
+        doc.removeEventListener('click', onclick.bind(iframeContentWindow), true)
+        bindEvent(doc, iframeContentWindow)
+      }
+    })
+  }, 500))
+  $(document).bind('DOMNodeRemoved', function(e) {
+  })
   console.log('bind.js 已运行')
 }
 function unbind () {
@@ -195,13 +275,25 @@ function startEvent (item, i) {
   let target = null
   switch (item.type) {
     case 'click':
-      let click = new MouseEvent('click', {
-        clientX: item.x,
-        clientY: item.y,
-        bubbles: true,
-        cancelable: true
-      })
+      let click
       target = document.elementFromPoint(item.x, item.y)
+      // 可能是iframe
+      if (target.tagName === 'IFRAME') {
+        target = target.contentWindow.document.elementFromPoint(item.clientX, item.clientY)
+        click = new MouseEvent('click', {
+          clientX: item.clientX,
+          clientY: item.clientY,
+          bubbles: true,
+          cancelable: true
+        })
+      } else {
+        click = new MouseEvent('click', {
+          clientX: item.x,
+          clientY: item.y,
+          bubbles: true,
+          cancelable: true
+        })
+      }
       target.dispatchEvent(click)
       // 为下一个输入事件做准备
       if (item.tagName === 'INPUT' || item.tagName === 'TEXTAREA') {
@@ -225,17 +317,23 @@ function startEvent (item, i) {
       }
       break
     case 'scroll':
-      target = document.elementFromPoint(item.mouseX, item.mouseY)
+      target = document.elementFromPoint(item.x, item.y)
+      let doc = document
+      if (target.tagName === 'IFRAME') {
+        doc = target.contentWindow.document
+        target = doc.elementFromPoint(item.clientX, item.clientY)
+      }
+
       if (!target && item.scrollList.length === 1) {
-        $('html').scrollTop(item.scrollList[0].top)
-        $('html').scrollLeft(item.scrollList[0].left)
+        $('html', doc).scrollTop(item.scrollList[0].top)
+        $('html', doc).scrollLeft(item.scrollList[0].left)
         return
       }
       let el = target
       for (let i =0; i< item.scrollList.length; i++) {
         if (typeof item.scrollList[i].top !== 'undefined') {
-          $(el).scrollTop(item.scrollList[i].top)
-          $(el).scrollLeft(item.scrollList[i].left)
+          $(el, doc).scrollTop(item.scrollList[i].top)
+          $(el, doc).scrollLeft(item.scrollList[i].left)
         }
         el = el.parentNode
       }
