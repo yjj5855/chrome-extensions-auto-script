@@ -12,6 +12,9 @@
     <div v-else-if="item.type == 'set-input-value'">
       输入 {{item.value}}
     </div>
+    <div v-else-if="item.type == 'set-select-value'">
+      选择 {{item.value}}
+    </div>
     <div v-else>暂不识别</div>
   </div>
 </template>
@@ -89,6 +92,18 @@
             }
           }
           xy.content = '输入'
+        } else if (this.item.type === 'set-select-value') {
+          // 向上查第一个click事件的xy坐标
+          for (let i = this.itemIndex - 1; i >= 0; i--) {
+            if (this.list[i].type === 'click' && (this.list[i].tagName === 'SELECT')) {
+              xy.x = this.list[i].x
+              xy.y = this.list[i].y
+              xy.clientX = this.list[i].clientX
+              xy.clientY = this.list[i].clientY
+              break
+            }
+          }
+          xy.content = '选择'
         } else {
           return
         }

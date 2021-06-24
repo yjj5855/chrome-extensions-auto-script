@@ -25,7 +25,20 @@ npm run build --report
 `externally_connectable` 可以直接在网页中使用`chrome.runtime` api发送消息的网页规则
 
 
-## 待实现功能
-1. select 点击事件和修改事件
-3. 导出测试结果
+## 实现的功能
+1. 全屏点击事件 √
+1. \<input\>,\<textarea\>输入事件 √
+1. 滚动事件 √
+1. \<input\>,\<textarea\>自定义key √
+1. \<select\>选择事件 √
+1. 一层\<iframe\>中的上述事件 √
+1. 脚本和事件可编辑 √
+1. 脚本和事件的可视化 √
+1. 导入导出 √
+1. 批量导入导出 √
+1. tab传参调用另一tab中的脚本 √
+     
+
+## 还未实现的功能
+1. 导出测试结果 ×
 

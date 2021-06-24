@@ -39,14 +39,44 @@ function getPosition_Iframe (event = {}, contentWindow) {
   return xy
 }
 
+/**
+ * this = contentWindow
+ * @param ev
+ */
 function onclick (ev) {
   let {x, y} = getPosition_Iframe(ev, this)
   let delay = new Date().getTime() - window.startTime
   if (delay > 5 && !window.running) {
     window.startTime += delay
-    chrome.runtime.sendMessage({
-      type: 'add-event',
-      event: {
+
+    let event
+
+    // 原生<select>事件太奇葩, 所以把设置select值得时机放在点击<option>中,只支持单选
+    if (ev.target.tagName === 'SELECT' && ev.clientX < 0 && ev.clientY < 0) {
+      if (ev.target.selectedOptions) {
+        // 获取到select选中的值
+        let val = []
+        for (let option of ev.target.selectedOptions) {
+          val.push(option.value)
+        }
+        if (val.length === 0) {
+          val = ''
+        } else if (val.length === 1) {
+          val = val[0]
+        }
+        event = {
+          type: 'set-select-value',
+          key: '',
+          value: val,
+          time: delay
+        }
+        chrome.runtime.sendMessage({
+          type: 'add-event',
+          event: event
+        })
+      }
+    } else {
+      event = {
         x,
         y,
         clientX: ev.clientX,
@@ -55,7 +85,12 @@ function onclick (ev) {
         tagName: ev.target.tagName,
         time: delay
       }
-    })
+      chrome.runtime.sendMessage({
+        type: 'add-event',
+        event: event
+      })
+    }
+    console.log('onclick', event, ev)
   }
 }
 
@@ -311,6 +346,8 @@ function startEvent (item, i) {
       if (item.tagName === 'INPUT' || item.tagName === 'TEXTAREA') {
         target.focus && target.focus()
         focusTarget = target
+      } else if (item.tagName === 'SELECT') {
+        focusTarget = target
       } else {
         focusTarget = null
       }
@@ -348,6 +385,16 @@ function startEvent (item, i) {
           $(el, doc).scrollLeft(item.scrollList[i].left)
         }
         el = el.parentNode
+      }
+      break
+    case 'set-select-value':
+      if (focusTarget) {
+        // 具体看 https://stackoverflow.com/questions/23892547/what-is-the-best-way-to-trigger-onchange-event-in-react-js
+        let prototype = window.HTMLSelectElement.prototype
+        let nativeInputValueSetter = Object.getOwnPropertyDescriptor(prototype, "value").set;
+        nativeInputValueSetter.call(focusTarget, item.value);
+        let inputEvent = new InputEvent('input', {bubbles: true})
+        focusTarget.dispatchEvent(inputEvent)
       }
       break
   }
