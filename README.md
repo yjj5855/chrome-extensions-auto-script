@@ -26,5 +26,6 @@ npm run build --report
 
 
 ## 待实现功能
+1. select 点击事件和修改事件
 3. 导出测试结果
 

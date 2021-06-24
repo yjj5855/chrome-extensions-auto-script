@@ -1,6 +1,6 @@
 {
   "name": "auto script",
-  "version": "1.2",
+  "version": "1.3",
   "manifest_version": 3,
   "action": {},
   "permissions": [
@@ -23,6 +23,10 @@
   ],
   "devtools_page": "devtools.html",
   "externally_connectable": {
-    "matches": ["http://localhost:63342/*"]
+    "matches": [
+      "http://localhost:63342/*",
+      "http://localhost:8089/*",
+      "https://isp.ibanbu.com/*"
+    ]
   }
 }

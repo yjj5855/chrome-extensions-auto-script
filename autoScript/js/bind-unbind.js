@@ -36,7 +36,6 @@ function getPosition_Iframe (event = {}, contentWindow) {
     parentWindow = parentWindow.parent;
   }
   let xy =  {x: left + (event.clientX || 0), y: top + (event.clientY || 0)}
-  // console.log(xy)
   return xy
 }
 
@@ -117,7 +116,7 @@ function setScrollWatcher (ev) {
   mouseClientY = ev && ev.clientY || mouseClientY;
   let doc = this.document
   scrollStartEl = doc.elementFromPoint(mouseClientX, mouseClientY);
-  console.log(`scrollStartEl x:${x} y:${y} clientX:${mouseClientX} clientY${mouseClientY}`, scrollStartEl)
+  // console.log(`scrollStartEl x:${x} y:${y} clientX:${mouseClientX} clientY${mouseClientY}`, scrollStartEl)
   let el = scrollStartEl;
   while (el) {
     if (scrollElementSet.has(el)) {
@@ -185,7 +184,7 @@ function bindEvent (doc, contentWindow) {
   $('textarea', doc).on('compositionstart', 'input', compositionstart)
   $('textarea', doc).on('compositionend', 'input', compositionend)
 
-  // 绑定鼠标移动事件 iframe 里还没做
+  // 绑定鼠标移动事件
   doc.addEventListener('mousemove', throttle(setScrollWatcher.bind(contentWindow)), true)
 }
 
@@ -206,7 +205,6 @@ function bind () {
 
     // 给变化后的iframes添加事件
     $(iframe).on('load', function (event) {
-      console.log('iframe.onload')
       iframes.add(iframe)
       iframeContentWindow = iframe.contentWindow
       doc =  iframeContentWindow.document
@@ -230,29 +228,43 @@ function bind () {
   })
   console.log('bind.js 已运行')
 }
-function unbind () {
-  document.removeEventListener('click', onclick, true)
 
-  $(document).off('keyup', 'input', onkeyup)
-  $(document).off('keydown', 'input', onkeydown)
-  $(document).off('input', 'input', input)
-  $(document).off('compositionstart', 'input', compositionstart)
-  $(document).off('compositionend', 'input', compositionend)
+function unbindEvent (doc, contentWindow) {
+// 不用 jquery on方法, useCapture设置为true在捕获时就触发, 是为了避免stopPropagation的情况
+  doc.removeEventListener('click', onclick.bind(contentWindow), true)
 
-  $(document).off('keyup', 'textarea', onkeyup)
-  $(document).off('keydown', 'textarea', onkeydown)
-  $(document).off('input', 'textarea', input)
-  $(document).off('compositionstart', 'textarea', compositionstart)
-  $(document).off('compositionend', 'textarea', compositionend)
+  $('input', doc).off('keyup', onkeyup)
+  $('input', doc).off('keydown', 'input', onkeydown)
+  $('input', doc).off('input', 'input', input)
+  $('input', doc).off('compositionstart', 'input', compositionstart)
+  $('input', doc).off('compositionend', 'input', compositionend)
+
+  $('textarea', doc).off('keyup', onkeyup)
+  $('textarea', doc).off('keydown', 'input', onkeydown)
+  $('textarea', doc).off('input', 'input', input)
+  $('textarea', doc).off('compositionstart', 'input', compositionstart)
+  $('textarea', doc).off('compositionend', 'input', compositionend)
 
   // 绑定鼠标移动事件
-  document.removeEventListener('mousemove', mousemove, true)
+  doc.removeEventListener('mousemove', throttle(setScrollWatcher.bind(contentWindow)), true)
+}
+function unbind () {
+  unbindEvent(document, window)
+
+  Array.of(iframes).forEach(iframe => {
+    let iframeContentWindow = iframe.contentWindow
+    if (!iframeContentWindow) {return}
+    let doc = iframeContentWindow.document
+    if (!doc) {return}
+    unbindEvent(doc, iframeContentWindow)
+  })
+
   console.log('unbind.js 已运行')
 }
 
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
-    console.log('bind-unbind 收到消息', request)
+    // console.log('bind-unbind 收到消息', request)
     switch (request.function) {
       case "bind":
         window.running = false
