@@ -208,16 +208,16 @@ function bindEvent (doc, contentWindow) {
   doc.addEventListener('click', onclick.bind(contentWindow), true)
 
   $('input', doc).on('keyup', onkeyup)
-  $('input', doc).on('keydown', 'input', onkeydown)
-  $('input', doc).on('input', 'input', input)
-  $('input', doc).on('compositionstart', 'input', compositionstart)
-  $('input', doc).on('compositionend', 'input', compositionend)
+  $('input', doc).on('keydown', onkeydown)
+  $('input', doc).on('input', input)
+  $('input', doc).on('compositionstart', compositionstart)
+  $('input', doc).on('compositionend', compositionend)
 
   $('textarea', doc).on('keyup', onkeyup)
-  $('textarea', doc).on('keydown', 'input', onkeydown)
-  $('textarea', doc).on('input', 'input', input)
-  $('textarea', doc).on('compositionstart', 'input', compositionstart)
-  $('textarea', doc).on('compositionend', 'input', compositionend)
+  $('textarea', doc).on('keydown', onkeydown)
+  $('textarea', doc).on('input', input)
+  $('textarea', doc).on('compositionstart', compositionstart)
+  $('textarea', doc).on('compositionend', compositionend)
 
   // 绑定鼠标移动事件
   doc.addEventListener('mousemove', throttle(setScrollWatcher.bind(contentWindow)), true)
@@ -269,16 +269,16 @@ function unbindEvent (doc, contentWindow) {
   doc.removeEventListener('click', onclick.bind(contentWindow), true)
 
   $('input', doc).off('keyup', onkeyup)
-  $('input', doc).off('keydown', 'input', onkeydown)
-  $('input', doc).off('input', 'input', input)
-  $('input', doc).off('compositionstart', 'input', compositionstart)
-  $('input', doc).off('compositionend', 'input', compositionend)
+  $('input', doc).off('keydown', onkeydown)
+  $('input', doc).off('input', input)
+  $('input', doc).off('compositionstart', compositionstart)
+  $('input', doc).off('compositionend', compositionend)
 
   $('textarea', doc).off('keyup', onkeyup)
-  $('textarea', doc).off('keydown', 'input', onkeydown)
-  $('textarea', doc).off('input', 'input', input)
-  $('textarea', doc).off('compositionstart', 'input', compositionstart)
-  $('textarea', doc).off('compositionend', 'input', compositionend)
+  $('textarea', doc).off('keydown', onkeydown)
+  $('textarea', doc).off('input', input)
+  $('textarea', doc).off('compositionstart', compositionstart)
+  $('textarea', doc).off('compositionend', compositionend)
 
   // 绑定鼠标移动事件
   doc.removeEventListener('mousemove', throttle(setScrollWatcher.bind(contentWindow)), true)

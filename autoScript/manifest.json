@@ -1,6 +1,6 @@
 {
   "name": "auto script",
-  "version": "1.3",
+  "version": "1.4",
   "manifest_version": 3,
   "action": {},
   "permissions": [
