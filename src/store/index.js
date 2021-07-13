@@ -5,15 +5,7 @@ const store = new Vuex.Store({
   state: {
     backgroundPageConnection: null,
     current: 0,
-    caseList: [
-      {
-        name: '按时发顺丰',
-        urlPath: '/#/',
-        eventList: [
-          {tagName: 'INPUT', time: 2397, type: 'click', x: 502, y: 155}
-        ]
-      }
-    ],
+    caseList: [],
     disconnect: true
   },
   actions: {},

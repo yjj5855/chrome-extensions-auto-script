@@ -203,6 +203,7 @@ export default {
           this.caseList.push({
             name: '脚本名称',
             urlPath: urlPath,
+            reload: false,
             eventList: [],
             // 获取到tab窗口大小
             width: window.width,

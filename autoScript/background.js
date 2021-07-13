@@ -34,7 +34,6 @@ chrome.runtime.onConnect.addListener(function (port) {
         // 从 storage 中获取当前host的case发送给tab
         chrome.tabs.get(message.tabId, function (tab) {
           let host = getHost(tab.url)
-          console.log(host)
           if (host) {
             chrome.storage.sync.get([host], function (result) {
               connections[message.tabId].postMessage({
@@ -128,8 +127,17 @@ chrome.tabs.onActivated.addListener(function (activeInfo) {
 // current tab
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   // Messages from content scripts should have sender.tab set
-  if (sender.tab) {
-    var tabId = sender.tab.id;
+  if (request.type === 'change-url') {
+    let tabId = request.tabId;
+    chrome.tabs.sendMessage(request.tabId, {
+        function: 'changeUrl',
+        urlPath: request.urlPath
+      },
+      function (data) {
+        sendResponse(data)
+      })
+  } else if (sender.tab) {
+    let tabId = sender.tab.id;
     if (tabId in connections) {
       connections[tabId].postMessage(request);
     } else {

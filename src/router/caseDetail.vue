@@ -35,6 +35,11 @@
       <el-col :span="12" style="padding-top: 8px;">
         <div style="margin: 8px;font-size: 20px;">
           <div>{{caseDetail.name}}</div>
+          <div>
+            <el-checkbox v-model="caseDetail.reload">执行前刷新页面</el-checkbox>
+            <el-alert v-if="caseDetail.reload" type="warning" title="第一个事件延迟设置高一些" />
+            <div style="font-size: 12px;color: #999;">{{caseDetail.urlPath}}</div>
+          </div>
           <div style="text-align: center;padding: 8px 0;">
             <el-button round type="primary" :disabled="runningEventIndex <= 0" @click="postRunMessage(runningEventIndex - 1)">上一步</el-button>
             <el-button round type="primary" :disabled="runningEventIndex === caseDetail.eventList.length" @click="postRunMessage(runningEventIndex + 1)">下一步</el-button>
@@ -168,6 +173,10 @@ export default {
     async oneByOneRunCase (callback) {
       // 连接bg
       this.$store.commit('connect')
+      // 发送刷新页面消息
+      if (this.caseDetail.reload) {
+        await this.postChangeUrlMessage()
+      }
       await this.startEventList(JSON.parse(JSON.stringify(this.caseDetail)))
       callback && callback()
     },
@@ -241,6 +250,17 @@ export default {
     editState (path, payload) {
       set(this.chooseEvent, path, payload.value, (obj, field, value) => {
         this.$set(obj, field, value)
+      })
+    },
+    postChangeUrlMessage () {
+      return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+          type: 'change-url',
+          tabId: chrome.devtools.inspectedWindow.tabId,
+          urlPath: this.caseDetail.urlPath
+        }, (data) => {
+          resolve()
+        })
       })
     }
   }

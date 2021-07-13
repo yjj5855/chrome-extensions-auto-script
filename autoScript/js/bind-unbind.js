@@ -313,6 +313,12 @@ chrome.runtime.onMessage.addListener(
         window.running = true
         startEvent(request.case, request.index)
         break
+      case "changeUrl":
+        window.location.href = request.urlPath
+        $(document).ready(() => {
+          sendResponse('changeUrlSuccess')
+        })
+        return true
     }
   }
 );
